@@ -1,0 +1,21 @@
+{
+  "name": "eslint-plugin-houserules",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "dependencies": {
+    "@angular-eslint/template-parser": "^22.6.0",
+    "@angular-eslint/utils": "^22.6.0",
+    "@typescript-eslint/utils": "^8.72.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.13.0"
+  }
+}
