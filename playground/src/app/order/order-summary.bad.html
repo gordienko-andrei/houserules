@@ -1,0 +1,9 @@
+<section class="order-summary">
+  <h2>Заказ № {{ order.number }}</h2>
+  <p>Товаров: {{ order.itemsCount }}, скидка {{ order.discountPercent }}%</p>
+  <p>Итого: {{ order.total | currency: 'RUB' }}</p>
+  <p>Доставка: {{ order.deliveryPrice }} ₽</p>
+  <p>Курс: ${{ order.totalUsd }}</p>
+  <p>Остаток долга: {{ order.debt }} руб.</p>
+  <button type="button" [attr.aria-label]="'Оплатить ' + (order.total | currency: 'RUB')">Оплатить</button>
+</section>

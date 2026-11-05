@@ -1,0 +1,9 @@
+<section class="order-summary">
+  <h2>Заказ № {{ order.number }}</h2>
+  <p>Товаров: {{ order.itemsCount }}, скидка {{ order.discountPercent }}%</p>
+  <p>Итого: <ui-money [value]="order.total" currency="RUB" /></p>
+  <p>Доставка: <ui-money [value]="order.deliveryPrice" currency="RUB" /></p>
+  <p>Курс: <ui-money [value]="order.totalUsd" currency="USD" /></p>
+  <p>Остаток долга: <ui-money [value]="order.debt" currency="RUB" /></p>
+  <button type="button">Оплатить <ui-money [value]="order.total" currency="RUB" /></button>
+</section>

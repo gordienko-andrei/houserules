@@ -17,7 +17,10 @@ Requires Node.js 22+ and pnpm.
 pnpm install
 pnpm test
 pnpm typecheck
+pnpm playground
 ```
+
+[`playground`](playground) shows the rules on sample Angular templates.
 
 ## License
 
