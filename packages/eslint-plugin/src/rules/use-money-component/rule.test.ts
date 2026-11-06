@@ -1,21 +1,10 @@
-import * as templateParser from '@angular-eslint/template-parser';
-import { RuleTester } from '@typescript-eslint/rule-tester';
-import { afterAll, describe, it } from 'vitest';
+import { createTemplateRuleTester } from '../../testing/rule-tester';
 import { RULE_NAME, useMoneyComponent } from './rule';
-
-RuleTester.afterAll = afterAll;
-RuleTester.describe = describe;
-RuleTester.it = it;
-RuleTester.itOnly = it.only;
 
 const MONEY_COMPONENT_USAGE = '<ui-money [value]="$value" />';
 const MONEY_PIPE_USAGE = '{{ $value | tuiAmount: "RUB" }}';
 
-const ruleTester = new RuleTester({
-  languageOptions: { parser: templateParser },
-});
-
-ruleTester.run(RULE_NAME, useMoneyComponent, {
+createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
   valid: [
     '<ui-money [value]="total" currency="RUB" />',
     '<p>{{ total | number }}</p>',

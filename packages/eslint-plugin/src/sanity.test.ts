@@ -1,12 +1,18 @@
 import * as templateParser from '@angular-eslint/template-parser';
 import { Linter } from 'eslint';
 import { describe, expect, it } from 'vitest';
-import plugin from './index';
+import houserules, { plugin } from './index';
 
 describe('eslint-plugin-houserules', () => {
   it('exposes plugin meta and rules', () => {
     expect(plugin.meta.name).toBe('eslint-plugin-houserules');
-    expect(Object.keys(plugin.rules)).toEqual(['use-money-component']);
+    expect(Object.keys(plugin.rules)).toEqual([
+      'use-money-component',
+      'no-glued-fields',
+      'require-async-states',
+      'no-px-font-size',
+    ]);
+    expect(houserules.rules).toBe(plugin.rules);
   });
 
   it('reports money rendered without the project component through a flat config', () => {

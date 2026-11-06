@@ -1,10 +1,36 @@
 {
   "name": "houserules",
   "version": "0.0.0",
+  "description": "Turns an Angular design system into context and checks for AI agents",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "houserules": "./dist/cli.mjs"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./stylelint": "./dist/stylelint.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsdown src/index.ts src/cli.ts src/stylelint.ts --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@angular-eslint/template-parser": "^22.6.0",
+    "citty": "^0.2.2",
+    "jiti": "^2.7.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "tsdown": "^0.23.5",
+    "typescript": "~6.0.3"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
   }
 }

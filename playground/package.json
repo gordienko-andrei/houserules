@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "pnpm --filter eslint-plugin-houserules build && eslint ."
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@angular-eslint/template-parser": "^22.6.0",
     "eslint": "^10.13.0",
-    "eslint-plugin-houserules": "workspace:*"
+    "eslint-plugin-houserules": "workspace:*",
+    "houserules": "workspace:*"
   }
 }

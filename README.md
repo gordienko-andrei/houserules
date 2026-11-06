@@ -1,13 +1,13 @@
 # Houserules
 
-ESLint plugin and CLI for enforcing project house rules.
+Your design system, enforced for AI agents: a config of data roles and project components for Angular, generated agent context and ESLint checks for templates.
 
 ## Packages
 
 | Package | Description |
 | --- | --- |
-| [`eslint-plugin-houserules`](packages/eslint-plugin) | ESLint rules |
-| [`houserules`](packages/cli) | Command-line interface |
+| [`houserules`](packages/cli) | Config, CLI (`init`, `scan`, `validate`, `generate`) and agent context |
+| [`eslint-plugin-houserules`](packages/eslint-plugin) | ESLint rules for Angular templates and `configs.recommended()` |
 
 ## Development
 

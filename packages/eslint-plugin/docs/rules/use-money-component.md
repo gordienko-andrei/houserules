@@ -80,16 +80,31 @@ interface UseMoneyComponentOptions {
 
 ## Usage
 
+With `houserules.configs.recommended()` the rule is on when `houserules.config.ts` maps the `money` role,
+and its options come from the role:
+
+```ts
+// houserules.config.ts
+export default defineConfig({
+  roles: {
+    money: { component: 'ui-money', usage: '<ui-money [value]="$value" />', files: 'src/app/ui/money/**' },
+  },
+  currencyWords: ['руб.'],
+});
+```
+
+By hand:
+
 ```js
 // eslint.config.js
 import templateParser from '@angular-eslint/template-parser';
-import houserules from 'eslint-plugin-houserules';
+import { plugin } from 'eslint-plugin-houserules';
 
 export default [
   {
     files: ['**/*.html'],
     languageOptions: { parser: templateParser },
-    plugins: { houserules },
+    plugins: { houserules: plugin },
     rules: {
       'houserules/use-money-component': [
         'error',
@@ -117,7 +132,8 @@ A project that shows money with a pipe:
 Inline templates (`template:` in `@Component`) are checked when your config extracts them with the
 angular-eslint processor, as in a standard `@angular-eslint` setup.
 
-The money component's own template is allowed to format money. Turn the rule off for it:
+The money component's own template is allowed to format money. The factory turns the rule off for the
+`files` of the role; by hand:
 
 ```js
 {

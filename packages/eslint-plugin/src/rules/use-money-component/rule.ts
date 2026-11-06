@@ -1,4 +1,4 @@
-import { ensureTemplateParser } from '@angular-eslint/utils';
+import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import { createRule } from '../../utils/create-rule';
 import {
   isBindingPipe,
@@ -7,7 +7,7 @@ import {
   type ExpressionNode,
   type InterpolationNode,
 } from '../../utils/template-ast';
-import { findExpressionsNextToCurrency } from './currency-text';
+import { findExpressionsNextToCurrency } from 'houserules';
 import { normalizeExpression, renderUsage } from './usage';
 
 export const RULE_NAME = 'use-money-component';

@@ -1,0 +1,26 @@
+<section class="orders">
+  <h2 class="orders__title">Заказы</h2>
+  @if (orders.isLoading()) {
+    <p>Загрузка…</p>
+  } @else if (orders.error()) {
+    <p>Не удалось загрузить заказы</p>
+  } @else {
+    @for (order of orders.value(); track order.id) {
+      <dl class="orders__item">
+        <dt>Клиент</dt>
+        <dd>{{ order.customer }}</dd>
+        <dt>Менеджер</dt>
+        <dd>{{ order.manager }}</dd>
+        <dt>Статус</dt>
+        <dd><s>{{ order.oldStatus }}</s> <span>{{ order.status }}</span></dd>
+      </dl>
+    } @empty {
+      <p>Заказов пока нет</p>
+    }
+  }
+  <ol>
+    <li>Откройте заказ</li>
+    <li>Проверьте сумму</li>
+    <li>Подтвердите оплату</li>
+  </ol>
+</section>

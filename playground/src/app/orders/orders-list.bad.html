@@ -1,0 +1,8 @@
+<section class="orders">
+  <h2 style="font-size: 20px">Заказы</h2>
+  @for (order of orders.value(); track order.id) {
+    <p>{{ order.customer }} • {{ order.manager }} • {{ order.shop }}</p>
+    <p [style.font-size.px]="12">Статус: {{ order.oldStatus }} → {{ order.status }}</p>
+  }
+  <p>Откройте заказ → проверьте сумму → подтвердите оплату</p>
+</section>
