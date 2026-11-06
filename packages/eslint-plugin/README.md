@@ -2,6 +2,8 @@
 
 ESLint rules for Angular templates that keep AI agents and developers inside your design system.
 
+Step by step setup: [Installing and using Houserules](../../docs/guide.md).
+
 ## Rules
 
 | Rule | Description | Needs a role |

@@ -19,12 +19,24 @@ describe('collectTemplateFacts', () => {
     expect(collectTemplateFacts(template('<p><span>a</span></p>'), []).elements).toEqual([]);
   });
 
+  it('ignores Angular built-in elements', () => {
+    const facts = collectTemplateFacts(template('<ng-container><ng-template><ng-content /></ng-template></ng-container>'), []);
+    expect(facts.elements).toEqual([]);
+  });
+
   it('collects pipes and money written by hand, shifted by the first line of an inline template', () => {
     const facts = collectTemplateFacts(template('<p>{{ total | currency }}</p>\n<p>{{ debt }} руб.</p>', 10), ['руб.']);
     expect(facts.pipes).toEqual([
       { name: 'currency', example: { file: 'src/app/order.html', line: 10, text: '<p>{{ total | currency }}</p>' } },
     ]);
     expect(facts.handFormattedMoney).toEqual([{ file: 'src/app/order.html', line: 11, text: '<p>{{ debt }} руб.</p>' }]);
+  });
+
+  it('finds an amount next to a currency code variable on the line of the amount', () => {
+    const facts = collectTemplateFacts(template('<p>\n  {{ baseCurrency }}&nbsp;{{ price }}\n</p>'), []);
+    expect(facts.handFormattedMoney).toEqual([
+      { file: 'src/app/order.html', line: 2, text: '{{ baseCurrency }}&nbsp;{{ price }}' },
+    ]);
   });
 
   it('reports a template that cannot be parsed', () => {

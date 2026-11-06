@@ -1,3 +1,5 @@
+import type { TSESTree } from '@typescript-eslint/utils';
+import { ruleDocsUrl } from 'houserules';
 import { createRule } from '../../utils/create-rule';
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import {
@@ -7,7 +9,9 @@ import {
   type TemplateNode,
   type TextNode,
 } from '../../utils/template-ast';
-import { findGlueBetweenValues, findStepsInText, type Glue, type GlueKind } from './glued-text';
+import { isFollowedByValueAfterBlock } from './following-value';
+import { findGlueBetweenValues, findStepsInText, findTrailingSeparator, type Glue, type GlueKind } from './glued-text';
+import { isScreenReaderOnly } from './screen-reader-text';
 
 export const RULE_NAME = 'no-glued-fields';
 
@@ -21,10 +25,18 @@ const ROLE_BY_KIND: Readonly<Record<GlueKind, 'metric' | 'comparison' | 'steps'>
   steps: 'steps',
 };
 
+const SEE_DOCS = `See ${ruleDocsUrl(RULE_NAME)}`;
+
 const PREFORMATTED_ELEMENTS = new Set(['code', 'pre', 'kbd', 'samp']);
 
 function isPreformatted(node: TemplateNode): boolean {
   return isElement(node.parent) && PREFORMATTED_ELEMENTS.has(node.parent.name);
+}
+
+function valuesLoc(node: InterpolationNode): TSESTree.SourceLocation {
+  const first = node.expressions.at(0);
+  const last = node.expressions.at(-1);
+  return first === undefined || last === undefined ? node.loc : { start: first.loc.start, end: last.loc.end };
 }
 
 export const noGluedFields = createRule<[NoGluedFieldsOptions], GlueKind>({
@@ -35,10 +47,9 @@ export const noGluedFields = createRule<[NoGluedFieldsOptions], GlueKind>({
       description: 'Disallow gluing separate values into one text with separators or arrows',
     },
     messages: {
-      separator: 'Values are glued into one text with `{{ marker }}`. Show each value in its own element{{ hint }}.',
-      comparison:
-        'Two values are joined with `{{ marker }}`. Show the change as a comparison with before and after in separate elements{{ hint }}.',
-      steps: 'Steps are joined with `{{ marker }}`. Show them as a numbered list{{ hint }}.',
+      separator: `Values are glued into one text with \`{{ marker }}\`. Lines glued with separators are a typical sign of generated markup and are not allowed, metadata lines included. Put each value in its own element{{ hint }}, space them with layout (\`gap\`) and mute the secondary ones. ${SEE_DOCS}`,
+      comparison: `Two values are joined with \`{{ marker }}\`. Show the change as a comparison with before and after in separate elements{{ hint }}. ${SEE_DOCS}`,
+      steps: `Steps are joined with \`{{ marker }}\`. Show them as a numbered list{{ hint }}. ${SEE_DOCS}`,
     },
     schema: [
       {
@@ -63,10 +74,10 @@ export const noGluedFields = createRule<[NoGluedFieldsOptions], GlueKind>({
   create(context, [options]) {
     ensureTemplateParser(context);
 
-    function report(node: TemplateNode, glue: Glue): void {
+    function report(loc: TSESTree.SourceLocation, glue: Glue): void {
       const usage = options.usages?.[ROLE_BY_KIND[glue.kind]];
       context.report({
-        loc: node.loc,
+        loc,
         messageId: glue.kind,
         data: { marker: glue.marker, hint: usage === undefined ? '' : `, for example \`${usage}\`` },
       });
@@ -74,21 +85,24 @@ export const noGluedFields = createRule<[NoGluedFieldsOptions], GlueKind>({
 
     return {
       Interpolation(node: InterpolationNode) {
-        if (!isInterpolationInTextContent(node) || node.expressions.length < 2) {
+        if (!isInterpolationInTextContent(node) || isScreenReaderOnly(node)) {
           return;
         }
-        const glue = findGlueBetweenValues(node.strings);
+        const glue = node.expressions.length < 2 ? undefined : findGlueBetweenValues(node.strings);
+        const splitGlue = glue === undefined ? findTrailingSeparator(node.strings) : undefined;
         if (glue !== undefined) {
-          report(node, glue);
+          report(valuesLoc(node), glue);
+        } else if (splitGlue !== undefined && isFollowedByValueAfterBlock(node)) {
+          report(node.expressions.at(-1)?.loc ?? node.loc, splitGlue);
         }
       },
       Text(node: TextNode) {
-        if (isPreformatted(node)) {
+        if (isPreformatted(node) || isScreenReaderOnly(node)) {
           return;
         }
         const glue = findStepsInText(node.value);
         if (glue !== undefined) {
-          report(node, glue);
+          report(node.loc, glue);
         }
       },
     };

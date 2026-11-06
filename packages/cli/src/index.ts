@@ -19,4 +19,13 @@ export {
   type RuleName,
   type RuleSeverity,
 } from './config/schema';
-export { endsWithCurrencyMarker, findExpressionsNextToCurrency, startsWithCurrencyMarker } from './text/currency-text';
+export { ruleDocsUrl } from './rule-docs';
+export { formatScanReport } from './scan/format-report';
+export { describeMoneyWays, findMoneyCandidates, type MoneyCandidate } from './scan/money-candidates';
+export { scanProject, type ComponentFacts, type PipeFacts, type ScanReport } from './scan/scan-project';
+export {
+  endsWithCurrencyMarker,
+  findAmountsNextToCurrencyCode,
+  findExpressionsNextToCurrency,
+  startsWithCurrencyMarker,
+} from './text/currency-text';

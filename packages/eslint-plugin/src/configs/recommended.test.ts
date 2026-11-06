@@ -43,7 +43,7 @@ describe('configs.recommended', () => {
     const configs = houserules.configs.recommended({ config: {} });
     expect(lint('<p style="font-size: 12px">{{ a }} • {{ b }}</p>', configs)).toEqual([
       'houserules/no-px-font-size: Font size is set in fixed `px`. Use `rem` or a typography class of the project, so text scales up to 200% (WCAG 1.4.4).',
-      'houserules/no-glued-fields: Values are glued into one text with `•`. Show each value in its own element.',
+      'houserules/no-glued-fields: Values are glued into one text with `•`. Lines glued with separators are a typical sign of generated markup and are not allowed, metadata lines included. Put each value in its own element, space them with layout (`gap`) and mute the secondary ones. See https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-glued-fields.md',
     ]);
   });
 
@@ -61,7 +61,7 @@ describe('configs.recommended', () => {
     );
     const configs = houserules.configs.recommended({ cwd: directory });
     expect(lint('<p>{{ order.total }} ₽</p>', configs)).toEqual([
-      'houserules/use-money-component: Show `order.total` with `{{ order.total | tuiAmount }}` instead of formatting it by hand next to a currency sign.',
+      'houserules/use-money-component: Show `order.total` with `{{ order.total | tuiAmount }}` instead of formatting it by hand next to a currency sign or code.',
     ]);
   });
 });

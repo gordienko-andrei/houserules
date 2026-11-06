@@ -35,6 +35,7 @@ export interface TextNode extends TemplateNode {
 export interface ElementNode extends TemplateNode {
   readonly type: 'Element';
   readonly name: string;
+  readonly attributes: readonly TextAttributeNode[];
 }
 
 export interface TextAttributeNode extends TemplateNode {
@@ -81,6 +82,27 @@ export interface IfBlockBranchNode extends TemplateNode {
 export interface IfBlockNode extends TemplateNode {
   readonly type: 'IfBlock';
   readonly branches: readonly IfBlockBranchNode[];
+}
+
+export interface ParentNode extends TemplateNode {
+  readonly children: readonly TemplateNode[];
+}
+
+export interface BoundTextNode extends TemplateNode {
+  readonly type: 'BoundText';
+  readonly value: TemplateNode & { readonly ast: TemplateNode };
+}
+
+export function hasChildren(node: TemplateNode | undefined): node is ParentNode {
+  return node !== undefined && 'children' in node && Array.isArray(node.children);
+}
+
+export function isBoundText(node: TemplateNode | undefined): node is BoundTextNode {
+  return node?.type === 'BoundText';
+}
+
+export function isInterpolation(node: TemplateNode | undefined): node is InterpolationNode {
+  return node?.type === 'Interpolation';
 }
 
 export function isPropertyRead(node: TemplateNode | undefined): node is PropertyReadNode {

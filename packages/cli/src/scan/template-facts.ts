@@ -1,5 +1,5 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
-import { findExpressionsNextToCurrency } from '../text/currency-text';
+import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '../text/currency-text';
 import { lineAt, lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
 
 export interface TemplateSource {
@@ -38,6 +38,7 @@ interface Offsets {
 }
 
 const MAX_EXAMPLE_LENGTH = 200;
+const ANGULAR_BUILT_IN_ELEMENTS = new Set(['ng-container', 'ng-template', 'ng-content']);
 
 function spanOf(node: WalkedNode, key: 'sourceSpan' | 'startSourceSpan'): Offsets | undefined {
   const span = node[key] as { start?: unknown; end?: unknown } | undefined;
@@ -59,7 +60,7 @@ function exampleAt(source: TemplateSource, offsets: Offsets, text?: string): Usa
 function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | undefined {
   const name = String(node['name']);
   const offsets = spanOf(node, 'startSourceSpan');
-  if (!name.includes('-') || offsets === undefined) {
+  if (!name.includes('-') || ANGULAR_BUILT_IN_ELEMENTS.has(name) || offsets === undefined) {
     return undefined;
   }
   const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
@@ -68,6 +69,22 @@ function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | 
     attributeNames: [...new Set(attributeNames)].sort(),
     example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
   };
+}
+
+function expressionSpans(node: WalkedNode): (Offsets | undefined)[] {
+  const expressions = node['expressions'];
+  return Array.isArray(expressions) ? expressions.map((expression: WalkedNode) => spanOf(expression, 'sourceSpan')) : [];
+}
+
+function handFormattedMoneyAt(source: TemplateSource, node: WalkedNode, currencyWords: readonly string[]): Offsets | undefined {
+  const strings = node['strings'] as readonly string[];
+  const spans = expressionSpans(node);
+  const texts = spans.map((span) => (span === undefined ? '' : source.text.slice(span.start, span.end)));
+  const indexes = [...findExpressionsNextToCurrency(strings, currencyWords), ...findAmountsNextToCurrencyCode(strings, texts)];
+  if (indexes.length === 0) {
+    return undefined;
+  }
+  return spans[Math.min(...indexes)] ?? spanOf(node, 'sourceSpan');
 }
 
 export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[]): TemplateFacts {
@@ -89,10 +106,10 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       }
     } else if (node.type === 'BindingPipe' && offsets !== undefined) {
       pipes.push({ name: String(node['name']), example: exampleAt(source, offsets) });
-    } else if (node.type === 'Interpolation' && offsets !== undefined) {
-      const strings = node['strings'] as readonly string[];
-      if (findExpressionsNextToCurrency(strings, currencyWords).length > 0) {
-        handFormattedMoney.push(exampleAt(source, offsets));
+    } else if (node.type === 'Interpolation') {
+      const moneyOffsets = handFormattedMoneyAt(source, node, currencyWords);
+      if (moneyOffsets !== undefined) {
+        handFormattedMoney.push(exampleAt(source, moneyOffsets));
       }
     }
   });

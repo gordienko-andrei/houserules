@@ -6,6 +6,8 @@ Turns the design system of an Angular project into context and checks for AI age
 From it Houserules generates the AGENTS.md section and agent skills, and
 [`eslint-plugin-houserules`](../eslint-plugin) checks templates against it.
 
+Step by step setup: [Installing and using Houserules](../../docs/guide.md).
+
 ## Commands
 
 ```sh

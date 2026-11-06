@@ -7,7 +7,7 @@ import {
   type ExpressionNode,
   type InterpolationNode,
 } from '../../utils/template-ast';
-import { findExpressionsNextToCurrency } from 'houserules';
+import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from 'houserules';
 import { normalizeExpression, renderUsage } from './usage';
 
 export const RULE_NAME = 'use-money-component';
@@ -52,9 +52,9 @@ export const useMoneyComponent = createRule<[UseMoneyComponentOptions], MessageI
       moneyPipe: 'Show money with {{ target }} instead of the `{{ pipe }}` pipe.',
       moneyPipeUsage: 'Show `{{ value }}` with `{{ usage }}` instead of the `{{ pipe }}` pipe.',
       moneyNextToCurrency:
-        'Money is formatted by hand next to a currency sign. Show it with {{ target }} instead.',
+        'Money is formatted by hand next to a currency sign or code. Show it with {{ target }} instead.',
       moneyNextToCurrencyUsage:
-        'Show `{{ value }}` with `{{ usage }}` instead of formatting it by hand next to a currency sign.',
+        'Show `{{ value }}` with `{{ usage }}` instead of formatting it by hand next to a currency sign or code.',
     },
     schema: [
       {
@@ -102,6 +102,15 @@ export const useMoneyComponent = createRule<[UseMoneyComponentOptions], MessageI
     const unwrappedPipes = new Set(options.pipe === undefined ? moneyPipes : [...moneyPipes, options.pipe]);
     const currencyWords = options.currencyWords ?? DEFAULT_CURRENCY_WORDS;
 
+    function moneyExpressionIndexes(node: InterpolationNode): number[] {
+      const expressions = node.expressions.map((expression) => sourceText.slice(expression.sourceSpan.start, expression.sourceSpan.end));
+      const indexes = new Set([
+        ...findExpressionsNextToCurrency(node.strings, currencyWords),
+        ...findAmountsNextToCurrencyCode(node.strings, expressions),
+      ]);
+      return [...indexes].sort((left, right) => left - right);
+    }
+
     function suggestUsage(expression: ExpressionNode): UsageSuggestion | undefined {
       if (options.usage === undefined) {
         return undefined;
@@ -128,7 +137,7 @@ export const useMoneyComponent = createRule<[UseMoneyComponentOptions], MessageI
       },
       Interpolation(node: InterpolationNode) {
         const isTextContent = isInterpolationInTextContent(node);
-        for (const index of findExpressionsNextToCurrency(node.strings, currencyWords)) {
+        for (const index of moneyExpressionIndexes(node)) {
           const expression = node.expressions[index];
           const suggestion = isTextContent && expression !== undefined ? suggestUsage(expression) : undefined;
           const loc = expression?.loc ?? node.loc;

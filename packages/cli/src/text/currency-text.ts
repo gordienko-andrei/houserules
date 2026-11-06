@@ -1,3 +1,5 @@
+import { nameTokens } from '../scan/usage-summary';
+
 const CURRENCY_SYMBOL_AT_END = /\p{Sc}$/u;
 const CURRENCY_SYMBOL_AT_START = /^\p{Sc}/u;
 const LETTER = /\p{L}/u;
@@ -41,4 +43,40 @@ export function findExpressionsNextToCurrency(
     }
   }
   return indexes;
+}
+
+const PLAIN_PATH = /^[\w$.?!\s]+(?:\(\s*\))?$/;
+const LAST_NAME = /([A-Za-z_$][\w$]*)\s*(?:\(\s*\))?\s*$/;
+const CURRENCY_CODE_NAME = /currency(?:code)?$/i;
+const NUMBER_PIPE = /\|\s*(?:number|decimal)\b/;
+const AMOUNT_TOKENS = new Set(['money', 'amount', 'price', 'cost', 'balance', 'sum', 'total', 'payment', 'value']);
+
+export function isCurrencyCodeExpression(expression: string): boolean {
+  const trimmed = expression.trim();
+  const lastName = LAST_NAME.exec(trimmed)?.[1];
+  return PLAIN_PATH.test(trimmed) && lastName !== undefined && CURRENCY_CODE_NAME.test(lastName);
+}
+
+export function isAmountExpression(expression: string): boolean {
+  if (isCurrencyCodeExpression(expression)) {
+    return false;
+  }
+  return NUMBER_PIPE.test(expression) || nameTokens(expression).some((token) => AMOUNT_TOKENS.has(token));
+}
+
+export function findAmountsNextToCurrencyCode(strings: readonly string[], expressions: readonly string[]): number[] {
+  const indexes = new Set<number>();
+  expressions.forEach((expression, index) => {
+    if (!isCurrencyCodeExpression(expression)) {
+      return;
+    }
+    for (const neighbor of [index - 1, index + 1]) {
+      const gap = strings[Math.max(index, neighbor)] ?? '';
+      const neighborExpression = expressions[neighbor];
+      if (neighborExpression !== undefined && gap.trim() === '' && isAmountExpression(neighborExpression)) {
+        indexes.add(neighbor);
+      }
+    }
+  });
+  return [...indexes].sort((left, right) => left - right);
 }

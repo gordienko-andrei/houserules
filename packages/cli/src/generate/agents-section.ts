@@ -1,6 +1,7 @@
 import { resolveRules } from '../config/resolve-rules';
 import { BUILT_IN_ROLES, findBuiltInRole } from '../config/roles';
 import type { HouserulesConfig, RoleMapping } from '../config/schema';
+import { ruleDocsUrl } from '../rule-docs';
 import { PLAN_SKILL_NAME, SKILLS_DIRECTORY } from './skills';
 
 export const SECTION_START = '<!-- houserules:start -->';
@@ -8,7 +9,7 @@ export const SECTION_END = '<!-- houserules:end -->';
 
 const RULE_SUMMARIES: Readonly<Record<string, string>> = {
   'use-money-component': 'money is shown only with the money component or pipe from the table above',
-  'no-glued-fields': 'separate values are never glued into one text with separators, commas or arrows',
+  'no-glued-fields': 'separate values are never glued into one text with `·`, `•`, `|`, commas or arrows',
   'require-async-states': 'async data has loading, error and (for lists) empty states',
   'no-px-font-size': 'font sizes are not set in fixed `px`',
 };
@@ -40,7 +41,8 @@ function rolesTable(config: HouserulesConfig): string[] {
 }
 
 const SCREEN_RULES = [
-  '- One meaning, one element. Never glue different values into one line with `•`, `|`, commas or arrows.',
+  '- One meaning, one element. Never glue different values into one line with `·`, `•`, `|`, commas or arrows, metadata lines included: it is the most visible sign of generated markup. Put each value in its own element and space them with layout (`gap`).',
+  '- Highlight the main value and mute the secondary ones: the number itself is prominent, its rate, unit, date or source is a separate element in the muted text style of the project.',
   '- The backend is the only source of truth. Do not recalculate values, rewrite messages or parse their text.',
   '- Tone follows the real state: green only after success is a fact, never "rows are valid" before the operation is applied.',
   '- A fix hint stands next to the error it belongs to, and only if the backend provides it.',
@@ -53,9 +55,11 @@ function checksSection(config: HouserulesConfig): string[] {
   return [
     '### Checks',
     '',
-    'ESLint (`eslint-plugin-houserules`) checks templates. Run it after changing a template and fix every error:',
+    'ESLint (`eslint-plugin-houserules`) checks templates. Run it after changing a template and fix every error as its message says; each rule page shows how to fix it:',
     '',
-    ...resolveRules(config).map((rule) => `- \`houserules/${rule.name}\`: ${RULE_SUMMARIES[rule.name] ?? ''}.`),
+    ...resolveRules(config).map(
+      (rule) => `- [\`houserules/${rule.name}\`](${ruleDocsUrl(rule.name)}): ${RULE_SUMMARIES[rule.name] ?? ''}.`,
+    ),
     '',
     'Do not silence these rules with `eslint-disable`, do not remove currency signs or move formatting to TypeScript to make the linter pass. If a rule looks wrong for a case, say so in your answer.',
   ];

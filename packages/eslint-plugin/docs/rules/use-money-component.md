@@ -22,8 +22,12 @@ Consistent presentation of the same kind of data across screens is
    By default only Angular's `currency` pipe; add your own pipes with `pipes`.
 2. An interpolation written right next to a currency sign: any Unicode currency symbol
    (`$`, `€`, `₽`, `£`, `¥`, …) and, optionally, currency words from `currencyWords`.
+3. An amount right next to a currency code shown from a variable, with only spaces between them:
+   `{{ order.total }} {{ order.currency }}`, `{{ baseCurrency }}&nbsp;{{ price | number }}`. The variable's
+   name ends with `currency` or `currencyCode`; the amount uses the `number` or `decimal` pipe or has a name
+   like `total`, `price`, `amount`, `sum`, `balance`, `cost`, `payment` or `value`.
 
-The rule does not guess money from field names such as `totalSum`: a name is a hint, not a fact.
+Apart from case 3, the rule does not guess money from field names such as `totalSum`: a name is a hint, not a fact.
 
 ## Messages with a ready call
 
@@ -31,7 +35,7 @@ With `usage`, the message contains the exact call to copy, built from the real e
 
 ```text
 Show `order.total` with `<ui-money [value]="order.total" />` instead of the `currency` pipe.
-Show `order.debt` with `<ui-money [value]="order.debt" />` instead of formatting it by hand next to a currency sign.
+Show `order.debt` with `<ui-money [value]="order.debt" />` instead of formatting it by hand next to a currency sign or code.
 ```
 
 A correct fix becomes cheaper than a workaround such as deleting the currency sign. The ready call is

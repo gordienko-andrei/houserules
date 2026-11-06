@@ -36,6 +36,8 @@ Rules that hold for every role:
 
 - The backend is the only source of truth: do not recalculate values, rewrite messages or parse their text. If the API gives no structure, show the message as is and say so.
 - Tone follows the real business state, not the mood of the text.
+- One value, one element: never join values with \`·\`, \`•\`, \`|\` or commas, not even in a subtitle or a table cell. Space them with layout.
+- The main value is prominent, the secondary ones (rate, unit, date, source) are separate muted elements.
 - Similar screens use the same roles and components, but keep their business differences.
 - Restraint: no extra nesting, decoration or icons without meaning.
 `;

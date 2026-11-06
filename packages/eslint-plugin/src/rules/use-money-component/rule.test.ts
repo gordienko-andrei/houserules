@@ -11,6 +11,8 @@ createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
     '<p>{{ count }} items</p>',
     '<p>Discount: {{ discount }}%</p>',
     '<p>Price in $ is shown below</p>',
+    '<small>{{ holding.symbol }} · {{ holding.currency }}</small>',
+    '<p>{{ account.name }} {{ account.currency }}</p>',
     {
       code: '<p>{{ total | currency }}</p>',
       options: [{ pipes: ['money'] }],
@@ -29,6 +31,21 @@ createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
     },
   ],
   invalid: [
+    {
+      code: `<p>You pay {{ baseCurrency }}&nbsp;{{\n  price / 15 | number: '1.2-2'\n}} per month</p>`,
+      options: [{ component: 'ui-money', usage: MONEY_COMPONENT_USAGE }],
+      errors: [
+        {
+          messageId: 'moneyNextToCurrencyUsage',
+          data: { value: "price / 15 | number: '1.2-2'", usage: `<ui-money [value]="price / 15 | number: '1.2-2'" />` },
+          line: 2,
+        },
+      ],
+    },
+    {
+      code: '<td>{{ order.total }} {{ order.currency }}</td>',
+      errors: [{ messageId: 'moneyNextToCurrency', data: { target: "the project's money component" }, column: 8 }],
+    },
     {
       code: '<p>Total: {{ total | currency:"RUB" }}</p>',
       errors: [

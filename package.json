@@ -6,7 +6,8 @@
     "build": "pnpm -r build",
     "test": "pnpm build && pnpm -r --workspace-concurrency=1 test",
     "typecheck": "pnpm build && pnpm -r typecheck",
-    "playground": "pnpm build && pnpm --filter houserules-playground lint"
+    "playground": "pnpm build && pnpm --filter houserules-playground lint",
+    "field-test": "pnpm build && pnpm --filter houserules-field-tests field-test"
   },
   "engines": {
     "node": ">=22"

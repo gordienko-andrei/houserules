@@ -36,7 +36,7 @@ describe('scanProject', () => {
       '<app-money> component: 2 uses',
       'acmeAmount pipe: 1 uses',
       'currency pipe: 1 uses',
-      'by hand next to a currency sign: 1 places',
+      'by hand next to a currency sign or code: 1 places',
     ]);
   });
 
