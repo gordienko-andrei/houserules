@@ -1,6 +1,6 @@
 # houserules/use-money-component
 
-Require money values in Angular templates to be rendered by the project money component.
+Require money values in Angular templates to be rendered by the project money component or pipe.
 
 - Type: suggestion
 - Layer: `recommended`
@@ -24,6 +24,20 @@ Consistent presentation of the same kind of data across screens is
    (`$`, `€`, `₽`, `£`, `¥`, …) and, optionally, currency words from `currencyWords`.
 
 The rule does not guess money from field names such as `totalSum`: a name is a hint, not a fact.
+
+## Messages with a ready call
+
+With `usage`, the message contains the exact call to copy, built from the real expression:
+
+```text
+Show `order.total` with `<ui-money [value]="order.total" />` instead of the `currency` pipe.
+Show `order.debt` with `<ui-money [value]="order.debt" />` instead of formatting it by hand next to a currency sign.
+```
+
+A correct fix becomes cheaper than a workaround such as deleting the currency sign. The ready call is
+given only where it fits: for a value in text content, not inside a property binding or an attribute.
+Elsewhere, and when the expression contains a quote that `usage` also uses, the message names
+the component or pipe without a call.
 
 ## Examples
 
@@ -49,6 +63,8 @@ Correct:
 ```ts
 interface UseMoneyComponentOptions {
   component?: string;
+  pipe?: string;
+  usage?: string;
   pipes?: string[];
   currencyWords?: string[];
 }
@@ -56,7 +72,9 @@ interface UseMoneyComponentOptions {
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `component` | none | Selector of your money component. It is only used in the message: `Show money with <ui-money> …`. |
+| `component` | none | Selector of your money component. It is only used in the message: `Show money with <ui-money> …`. Cannot be set together with `pipe`. |
+| `pipe` | none | Name of your money pipe, when the project shows money with a pipe (Taiga UI: `tuiAmount`). This pipe is never reported, even if listed in `pipes`. |
+| `usage` | none | How to show a money value, with `$value` in place of the expression: `<ui-money [value]="$value" />` or `{{ $value \| tuiAmount: "RUB" }}`. Take it from a real call in the project and keep only what is the same for every value: a fixed `currency="RUB"` would mislead on a dollar amount. |
 | `pipes` | `['currency']` | Pipes that format money. Replaces the default list, so keep `currency` if you need it. |
 | `currencyWords` | `[]` | Currency codes or words that count as a currency sign, for example `['USD', 'руб.']`. Matched case-sensitively and as whole words. |
 
@@ -75,11 +93,25 @@ export default [
     rules: {
       'houserules/use-money-component': [
         'error',
-        { component: 'ui-money', pipes: ['currency', 'money'], currencyWords: ['руб.'] },
+        {
+          component: 'ui-money',
+          usage: '<ui-money [value]="$value" />',
+          pipes: ['currency', 'money'],
+          currencyWords: ['руб.'],
+        },
       ],
     },
   },
 ];
+```
+
+A project that shows money with a pipe:
+
+```js
+'houserules/use-money-component': [
+  'error',
+  { pipe: 'tuiAmount', usage: '{{ $value | tuiAmount: "RUB" }}' },
+],
 ```
 
 Inline templates (`template:` in `@Component`) are checked when your config extracts them with the

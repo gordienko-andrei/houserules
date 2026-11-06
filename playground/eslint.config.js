@@ -7,7 +7,14 @@ export default [
     languageOptions: { parser: templateParser },
     plugins: { houserules },
     rules: {
-      'houserules/use-money-component': ['error', { component: 'ui-money', currencyWords: ['руб.'] }],
+      'houserules/use-money-component': [
+        'error',
+        {
+          component: 'ui-money',
+          usage: '<ui-money [value]="$value" />',
+          currencyWords: ['руб.'],
+        },
+      ],
     },
   },
   {

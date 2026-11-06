@@ -6,7 +6,7 @@ ESLint rules for Angular templates that keep AI agents and developers inside you
 
 | Rule | Description |
 | --- | --- |
-| [`use-money-component`](docs/rules/use-money-component.md) | Require money values to be rendered by the project money component |
+| [`use-money-component`](docs/rules/use-money-component.md) | Require money values to be rendered by the project money component or pipe |
 
 ## Setup
 
@@ -23,7 +23,10 @@ export default [
     languageOptions: { parser: templateParser },
     plugins: { houserules },
     rules: {
-      'houserules/use-money-component': ['error', { component: 'ui-money' }],
+      'houserules/use-money-component': [
+        'error',
+        { component: 'ui-money', usage: '<ui-money [value]="$value" />' },
+      ],
     },
   },
 ];
