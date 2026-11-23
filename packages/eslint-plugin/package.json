@@ -1,12 +1,34 @@
 {
   "name": "eslint-plugin-houserules",
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "ESLint rules for Angular templates that keep AI agents inside your design system",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "angular",
+    "angular-templates",
+    "design-system",
+    "ai-agents"
+  ],
+  "homepage": "https://github.com/gordienko-andrei/houserules/tree/main/packages/eslint-plugin#readme",
+  "bugs": "https://github.com/gordienko-andrei/houserules/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gordienko-andrei/houserules.git",
+    "directory": "packages/eslint-plugin"
+  },
   "license": "MIT",
+  "author": "Andrei Gordienko",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
+    "prepack": "pnpm run build",
     "build": "tsdown src/index.ts --dts --exports",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

@@ -1,4 +1,5 @@
 import type { ESLint } from 'eslint';
+import { version } from '../package.json';
 import { createRecommended } from './configs/recommended';
 import { RULE_NAME as NO_GLUED_FIELDS, noGluedFields } from './rules/no-glued-fields/rule';
 import { RULE_NAME as NO_PX_FONT_SIZE, noPxFontSize } from './rules/no-px-font-size/rule';
@@ -21,7 +22,7 @@ const rules = {
 export const plugin = {
   meta: {
     name: 'eslint-plugin-houserules',
-    version: '0.0.0',
+    version,
   },
   // typescript-eslint rule types are stricter than ESLint core ones, so eslint.config.ts would reject them without this cast.
   rules: rules as unknown as NonNullable<ESLint.Plugin['rules']>,
