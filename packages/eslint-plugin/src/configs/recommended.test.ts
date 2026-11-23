@@ -51,6 +51,21 @@ describe('configs.recommended', () => {
     ]);
   });
 
+  it('reports native elements a role replaces, except in the files of the role component', () => {
+    const configs = houserules.configs.recommended({
+      config: {
+        roles: {
+          action: { component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])', files: 'src/app/ui/button/**' },
+        },
+      },
+    });
+    const template = '<button type="button">Retry</button><button pButton>Save</button>';
+    expect(lint(template, configs)).toEqual([
+      'houserules/prefer-role-component: Native `<button>` matches `button:not([pButton])`, which the `action` role replaces. Use <p-button> as in `<p-button [label]="$value" />`. See https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/prefer-role-component.md',
+    ]);
+    expect(lint(template, configs, 'src/app/ui/button/button.component.html')).toEqual([]);
+  });
+
   it('applies severities from the config', () => {
     const configs = houserules.configs.recommended({ config: { rules: { 'no-px-font-size': 'off' } } });
     expect(lint('<p style="font-size: 12px">a</p>', configs)).toEqual([]);

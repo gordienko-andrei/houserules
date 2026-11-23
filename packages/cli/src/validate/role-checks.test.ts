@@ -70,6 +70,36 @@ describe('validateProject', () => {
     }
   });
 
+  it('finds attribute directives of the project and its libraries and counts their uses', () => {
+    const project = createFixtureProject({
+      'package.json': JSON.stringify({ dependencies: { primeng: '1.0.0', '@angular/material': '1.0.0' } }),
+      'node_modules/primeng/button.d.ts': 'static ɵdir: i0.ɵɵDirectiveDeclaration<ButtonDirective, "[pButton]", never>;',
+      'node_modules/@angular/material/button.d.ts':
+        'static ɵcmp: i0.ɵɵComponentDeclaration<MatButton, "    button[mat-button], button[mat-flat-button], a[mat-button]  ", never>;',
+      'src/app/tooltip.ts': "@Directive({ selector: '[appTooltip]' }) export class TooltipDirective { readonly appTooltip = input(''); }",
+      'src/app/app.html':
+        '<button pButton label="Save"></button><button pButton>Retry</button><button mat-flat-button>Go</button><span appTooltip="x">i</span><button>plain</button>',
+    });
+    try {
+      const components = ['button[pButton]', 'button[mat-flat-button]', 'span[appTooltip]', 'button[tuiButton]'];
+      const scan = scanProject(project.root, [], { components });
+      const check = (component: string) => checkRoleTarget('action', role({ component, usage: `<${component.split('[')[0]} />` }), scan);
+      expect(check('button[pButton]')).toEqual({ status: 'ok', message: 'action: `button[pButton]` found (library, primeng), 2 uses.' });
+      expect(check('button[mat-flat-button]').message).toBe('action: `button[mat-flat-button]` found (library, @angular/material), 1 uses.');
+      expect(check('span[appTooltip]').message).toBe('action: `span[appTooltip]` found (project, src/app/tooltip.ts), 1 uses.');
+      expect(check('button[tuiButton]').status).toBe('error');
+    } finally {
+      project.remove();
+    }
+  });
+
+  it('checks that the usage calls the directive on its element', () => {
+    const directive = (usage: string) => checkUsageCallsTarget('action', role({ component: 'button[pButton]', usage })).status;
+    expect(directive('<button pButton [label]="$value"></button>')).toBe('ok');
+    expect(directive('<button [label]="$value"></button>')).toBe('error');
+    expect(directive('<a pButton [label]="$value"></a>')).toBe('error');
+  });
+
   it('warns when declarations are ambiguous or a dependency is missing', () => {
     const project = createFixtureProject({
       'package.json': JSON.stringify({ dependencies: { 'missing-ui': '1.0.0' } }),
@@ -113,6 +143,8 @@ describe('validateProject', () => {
       'ok rule houserules/no-glued-fields is on (error).',
       'ok rule houserules/require-async-states is on (error).',
       'ok rule houserules/no-px-font-size is on (error).',
+      'skipped rule houserules/prefer-role-component is off.',
+      'skipped rule houserules/restricted-template-syntax is off.',
     ]);
   });
 });

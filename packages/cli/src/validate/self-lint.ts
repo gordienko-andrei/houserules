@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import type { HouserulesConfig } from '../config/schema';
 import { fillUsage, type Check } from './role-checks';
 
-interface LintMessage {
+export interface LintMessage {
   readonly ruleId: string | null;
   readonly message: string;
   readonly severity: number;
@@ -23,6 +23,10 @@ interface PluginModule {
   readonly default: { readonly configs: { recommended(options: { config: HouserulesConfig }): unknown } };
 }
 
+export type TemplateLint = (code: string, fileName: string) => LintMessage[];
+
+export type PreparedLint = { readonly lint: TemplateLint } | { readonly unavailable: Check['status']; readonly reason: string };
+
 async function importFromProject<T>(root: string, specifier: string): Promise<T | undefined> {
   let path: string;
   try {
@@ -34,44 +38,49 @@ async function importFromProject<T>(root: string, specifier: string): Promise<T 
   return (await import(pathToFileURL(path).href)) as T;
 }
 
-export async function prepareRoleUsageLint(root: string, config: HouserulesConfig): Promise<(roleName: string, usage: string) => Check> {
+function reasonOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export async function prepareTemplateLint(root: string, config: HouserulesConfig): Promise<PreparedLint> {
   let eslint: EslintModule | undefined;
   let plugin: PluginModule | undefined;
   try {
     eslint = await importFromProject<EslintModule>(root, 'eslint');
     plugin = await importFromProject<PluginModule>(root, 'eslint-plugin-houserules');
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return (roleName) => ({ status: 'error', message: `${roleName}: unable to load lint dependencies: ${reason}` });
+    return { unavailable: 'error', reason: `unable to load lint dependencies: ${reasonOf(error)}` };
   }
   if (eslint === undefined || plugin === undefined) {
-    return (roleName) => ({ status: 'skipped', message: `${roleName}: usage not linted, eslint or eslint-plugin-houserules is not installed.` });
+    return { unavailable: 'skipped', reason: 'eslint or eslint-plugin-houserules is not installed' };
   }
-  let linter: LinterInstance;
-  let configs: unknown;
   try {
-    configs = plugin.default.configs.recommended({ config });
-    linter = new eslint.Linter({ configType: 'flat' });
+    const configs = plugin.default.configs.recommended({ config });
+    const linter = new eslint.Linter({ configType: 'flat' });
+    return {
+      lint: (code, fileName) =>
+        linter.verify(code, configs, fileName).filter((message) => message.fatal === true || message.ruleId?.startsWith('houserules/') === true),
+    };
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return (roleName) => ({ status: 'error', message: `${roleName}: unable to configure lint: ${reason}` });
+    return { unavailable: 'error', reason: `unable to configure lint: ${reasonOf(error)}` };
   }
-  return (roleName, usage) => {
-    let messages: LintMessage[];
-    try {
-      messages = linter
-        .verify(fillUsage(usage), configs, `${roleName}.usage.html`)
-        .filter((message) => message.fatal === true || message.ruleId?.startsWith('houserules/') === true);
-    } catch (error) {
-      return { status: 'error', message: `${roleName}: unable to lint usage: ${error instanceof Error ? error.message : String(error)}` };
-    }
-    if (messages.length === 0) {
-      return { status: 'ok', message: `${roleName}: usage passes Houserules rules.` };
-    }
-    return { status: messages.some((message) => message.fatal === true || message.severity === 2) ? 'error' : 'warning', message: `${roleName}: usage breaks its own rules: ${messages.map((message) => message.message).join(' ')}` };
-  };
 }
 
-export async function lintRoleUsage(root: string, roleName: string, usage: string, config: HouserulesConfig): Promise<Check> {
-  return (await prepareRoleUsageLint(root, config))(roleName, usage);
+export function lintUsageCheck(prepared: PreparedLint, roleName: string, usage: string): Check {
+  if ('unavailable' in prepared) {
+    return { status: prepared.unavailable, message: `${roleName}: usage not linted, ${prepared.reason}.` };
+  }
+  let messages: LintMessage[];
+  try {
+    messages = prepared.lint(fillUsage(usage), `${roleName}.usage.html`);
+  } catch (error) {
+    return { status: 'error', message: `${roleName}: unable to lint usage: ${reasonOf(error)}` };
+  }
+  if (messages.length === 0) {
+    return { status: 'ok', message: `${roleName}: usage passes Houserules rules.` };
+  }
+  return {
+    status: messages.some((message) => message.fatal === true || message.severity === 2) ? 'error' : 'warning',
+    message: `${roleName}: usage breaks its own rules: ${messages.map((message) => message.message).join(' ')}`,
+  };
 }

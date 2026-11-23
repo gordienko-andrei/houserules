@@ -5,7 +5,7 @@ import { parseConfig } from '../config/load-config';
 import { createFixtureProject } from '../testing/fixture-project';
 import { renderAgentsSection, renderContext, SECTION_END, SECTION_START } from './agents-section';
 import { generateFiles } from './generate-files';
-import { renderPlanSkill } from './skills';
+import { renderLearnSkill, renderPlanSkill } from './skills';
 import { resolveRules } from '../config/resolve-rules';
 import { ensureAgentsImport, upsertSection } from './upsert-section';
 
@@ -60,6 +60,22 @@ describe('renderAgentsSection', () => {
     expect(severities({ preset: 'recommended', rules: { 'no-glued-fields': 'warn' } })['no-glued-fields']).toBe('warn');
   });
 
+  it('names the native elements a role component replaces', () => {
+    const config = parseConfig({
+      roles: { action: { component: 'p-button', usage: '<p-button [label]="$value" />', replaces: ['button:not([pButton])', 'a[role=button]'] } },
+    });
+    expect(renderContext(config)).toContain('Use it instead of native `button:not([pButton])`, `a[role=button]`.');
+    expect(renderContext(config)).toContain('`houserules/prefer-role-component`');
+  });
+
+  it('lists project restrictions with the good example', () => {
+    const config = parseConfig({
+      restrictions: [{ selector: 'BindingPipe[name="date"]', message: 'Show dates with <app-date>.', bad: '{{ d | date }}', good: '<app-date [value]="d" />' }],
+    });
+    expect(renderContext(config)).toContain('- Show dates with <app-date>. Write it like `<app-date [value]="d" />`.');
+    expect(renderContext(parseConfig({}))).not.toContain('Project restrictions');
+  });
+
   it('tells the agent not to invent components when no role is mapped', () => {
     expect(renderContext(parseConfig({}))).toContain('No roles are mapped to components yet.');
   });
@@ -68,6 +84,15 @@ describe('renderAgentsSection', () => {
 describe('renderPlanSkill', () => {
   it('loads selected roles on demand', () => {
     expect(renderPlanSkill(CONFIG)).toContain('houserules context --roles');
+  });
+});
+
+describe('renderLearnSkill', () => {
+  it('asks for evidence beyond the corrected screen and proves the config on the agent version', () => {
+    const skill = renderLearnSkill();
+    expect(skill).toContain('name: houserules-learn');
+    expect(skill).toContain('evidence outside the corrected screen');
+    expect(skill).toContain('--stdin-filename');
   });
 });
 
@@ -115,6 +140,7 @@ describe('generateFiles', () => {
       'CLAUDE.md',
       '.claude/skills/houserules-plan/SKILL.md',
       '.claude/skills/houserules-setup/SKILL.md',
+      '.claude/skills/houserules-learn/SKILL.md',
     ]);
     expect(secondCheck.every((change) => change.isChanged)).toBe(true);
   });

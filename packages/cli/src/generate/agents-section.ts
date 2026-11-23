@@ -12,8 +12,14 @@ function escapeCell(text: string): string {
   return text.replaceAll('|', '\\|').replaceAll('\n', ' ');
 }
 
+function replacesNote(role: RoleMapping): string {
+  if (role.replaces === undefined) return '';
+  const selectors = typeof role.replaces === 'string' ? [role.replaces] : role.replaces;
+  return ` Use it instead of native ${selectors.map((selector) => `\`${selector}\``).join(', ')}.`;
+}
+
 function roleRow(name: string, role: RoleMapping): string {
-  const description = role.description ?? findBuiltInRole(name)?.description ?? '';
+  const description = (role.description ?? findBuiltInRole(name)?.description ?? '') + replacesNote(role);
   return `| ${name} | ${escapeCell(description)} | \`${escapeCell(role.usage)}\` |`;
 }
 
@@ -40,6 +46,16 @@ const SCREEN_RULES = [
   '- Font sizes use `rem` or project typography classes, never fixed `px`.',
   '- Texts come from the project i18n, not hard-coded in templates.',
 ];
+
+function restrictionsSection(config: HouserulesConfig): string[] {
+  if (config.restrictions.length === 0) return [];
+  return [
+    '### Project restrictions',
+    '',
+    ...config.restrictions.map((restriction) => `- ${restriction.message} Write it like \`${escapeCell(restriction.good)}\`.`),
+    '',
+  ];
+}
 
 function checksSection(config: HouserulesConfig): string[] {
   return [
@@ -83,6 +99,7 @@ export function renderContext(config: HouserulesConfig, roles: HouserulesConfig[
       return config.preset !== 'recommended';
     }),
     '',
+    ...restrictionsSection(config),
     ...checksSection(config),
     ...(includeProjectDetails ? optionalSections(config) : []),
   ].join('\n');

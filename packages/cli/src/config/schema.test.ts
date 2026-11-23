@@ -8,6 +8,7 @@ describe('parseConfig', () => {
       currencyWords: [],
       moneyPipes: ['currency'],
       examples: [],
+      restrictions: [],
       rules: {},
     });
   });
@@ -43,6 +44,38 @@ describe('parseConfig', () => {
       roles: { rating: { component: 'ui-stars', usage: '<ui-stars />', description: 'Product rating' } },
     });
     expect(config.roles['rating']?.description).toBe('Product rating');
+  });
+
+  it('accepts native elements a role component replaces', () => {
+    const config = parseConfig({
+      roles: {
+        action: { component: 'p-button', usage: '<p-button [label]="$value" />', replaces: ['button:not([pButton])'] },
+      },
+    });
+    expect(config.roles['action']?.replaces).toEqual(['button:not([pButton])']);
+  });
+
+  it('accepts a directive selector as the role component', () => {
+    const config = parseConfig({
+      roles: { action: { component: 'button[mat-flat-button]', usage: '<button mat-flat-button>{{ $value }}</button>' } },
+    });
+    expect(config.roles['action']?.component).toBe('button[mat-flat-button]');
+    expect(() => parseConfig({ roles: { action: { component: '.btn', usage: '<x />' } } })).toThrow(/roles\.action\.component/);
+  });
+
+  it('rejects unsupported selectors and replaces on a pipe role', () => {
+    expect(() =>
+      parseConfig({ roles: { action: { component: 'p-button', usage: '<p-button />', replaces: '.btn' } } }),
+    ).toThrow(/roles\.action\.replaces/);
+    expect(() =>
+      parseConfig({ roles: { money: { pipe: 'amount', usage: '{{ $value | amount }}', replaces: 'span' } } }),
+    ).toThrow(/roles\.money\.replaces: `replaces` needs a `component`/);
+  });
+
+  it('accepts restrictions with a selector, a message and both examples', () => {
+    const restriction = { selector: 'BindingPipe[name="date"]', message: 'Use <app-date>.', bad: '{{ d | date }}', good: '<app-date [value]="d" />' };
+    expect(parseConfig({ restrictions: [restriction] }).restrictions).toEqual([restriction]);
+    expect(() => parseConfig({ restrictions: [{ selector: 'BindingPipe', message: 'x', bad: '{{ d | date }}' }] })).toThrow(/restrictions\.0\.good/);
   });
 
   it('rejects unknown keys and unknown rules', () => {
