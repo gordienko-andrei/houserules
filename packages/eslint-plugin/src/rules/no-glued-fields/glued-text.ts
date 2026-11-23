@@ -72,3 +72,8 @@ export function findTrailingSeparator(strings: readonly string[]): Glue | undefi
   const tail = (strings.at(-1) ?? '').trim();
   return strings.length > 1 && tail.length === 1 && SEPARATOR.test(tail) ? { kind: 'separator', marker: tail } : undefined;
 }
+
+export function findLeadingSeparator(strings: readonly string[]): Glue | undefined {
+  const head = (strings.at(0) ?? '').trim();
+  return strings.length > 1 && head.length === 1 && SEPARATOR.test(head) ? { kind: 'separator', marker: head } : undefined;
+}

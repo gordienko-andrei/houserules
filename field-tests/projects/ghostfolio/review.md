@@ -18,14 +18,17 @@ A mature project with one money component (`<gf-value>`, 188 uses), so few findi
 | no-glued-fields | `import-activities-dialog.html:54` | ok | `{{ symbol }} · {{ currency }}` in a `<small>` subtitle. Metadata glue is not allowed either: two muted `<span>`s with `gap`. |
 | no-glued-fields | `portfolio-filter-form.component.html:28` | ok | The same pattern. |
 | no-glued-fields | `account-selector.component.html:44` | ok | The same pattern, with the separator inside `@if`. |
+| no-glued-fields | `assistant-list-item.html:13` | ok | `{{ item?.symbol }} @if (item.currency) { · {{ item.currency }} }`: the separator opens the `@if` branch. |
+| no-glued-fields | `symbol-autocomplete.component.html:30` | ok | The same pattern. |
 
-Precision: 10 ok, 0 false.
+Precision: 12 ok, 0 false.
 
 ## Misses
 
 | Rule | Where | Pattern |
 | --- | --- | --- |
 | use-money-component | `black-weeks-2026-page.html:77` | `{{ baseCurrency }}&nbsp;<strong>{{ price }}</strong>`: the amount is in another element than the currency code. |
+| no-glued-fields | `assistant-list-item.html:16`, `symbol-autocomplete.component.html:33` | A second `@if` that opens with `·` right after the first `@if` block: the value before it may not render, so the chain is not reported. |
 
 ## Scan
 
