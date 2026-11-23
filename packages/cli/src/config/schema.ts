@@ -31,6 +31,8 @@ const roleMappingSchema = z
 
 export const configSchema = z
   .strictObject({
+    preset: z.enum(['recommended', 'strict']).optional(),
+    scan: z.strictObject({ roots: z.array(nonEmptyString).min(1).optional() }).optional(),
     roles: z.record(nonEmptyString, roleMappingSchema).default({}),
     currencyWords: z.array(nonEmptyString).default([]).describe('Currency codes or words, for example `руб.`.'),
     moneyPipes: z.array(nonEmptyString).default(['currency']).describe('Pipes that must not format money.'),

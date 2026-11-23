@@ -1,37 +1,7 @@
 <!-- houserules:start -->
-## Houserules: how this project shows data
+## Houserules
 
-Generated from `houserules.config.ts` by `npx houserules generate`. Do not edit this section by hand.
+Before changing an Angular template, run `npx houserules context --list`, then request relevant roles with `npx houserules context --roles money,status` (replace these names). If no mapped role applies, run `npx houserules context --guidance`. Read the returned guidance before editing. For domain glossary and reference files, add `--project`. Inspect the data contract when unsure. Run project checks after editing and report unresolved issues.
 
-Before you build or change a screen that shows backend data, follow `.claude/skills/houserules-plan/SKILL.md`: read the data types, give every shown field a role, then write the template.
-
-### Roles and components
-
-| Role | When | Show with (`$value` is the shown expression) |
-| --- | --- | --- |
-| money | An amount of money. Currency, rounding, sign and colour are decided by one component or pipe. | `<ui-money [value]="$value" />` |
-
-The project has no component for: status, metric, issue, comparison, tip, steps, code, action. Use plain semantic markup for them and do not invent components.
-
-### Rules for every screen
-
-- One meaning, one element. Never glue different values into one line with `·`, `•`, `|`, commas or arrows, metadata lines included: it is the most visible sign of generated markup. Put each value in its own element and space them with layout (`gap`).
-- Highlight the main value and mute the secondary ones: the number itself is prominent, its rate, unit, date or source is a separate element in the muted text style of the project.
-- The backend is the only source of truth. Do not recalculate values, rewrite messages or parse their text.
-- Tone follows the real state: green only after success is a fact, never "rows are valid" before the operation is applied.
-- A fix hint stands next to the error it belongs to, and only if the backend provides it.
-- Async data shows loading, error and empty states.
-- Font sizes use `rem` or project typography classes, never fixed `px`.
-- Texts come from the project i18n, not hard-coded in templates.
-
-### Checks
-
-ESLint (`eslint-plugin-houserules`) checks templates. Run it after changing a template and fix every error as its message says; each rule page shows how to fix it:
-
-- [`houserules/use-money-component`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/use-money-component.md): money is shown only with the money component or pipe from the table above.
-- [`houserules/no-glued-fields`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-glued-fields.md): separate values are never glued into one text with `·`, `•`, `|`, commas or arrows.
-- [`houserules/require-async-states`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/require-async-states.md): async data has loading, error and (for lists) empty states.
-- [`houserules/no-px-font-size`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-px-font-size.md): font sizes are not set in fixed `px`.
-
-Do not silence these rules with `eslint-disable`, do not remove currency signs or move formatting to TypeScript to make the linter pass. If a rule looks wrong for a case, say so in your answer.
+For screen planning, follow `.claude/skills/houserules-plan/SKILL.md`.
 <!-- houserules:end -->

@@ -4,21 +4,21 @@
 | --- | --- |
 | Repository | https://github.com/ghostfolio/ghostfolio.git |
 | Commit | `157e425ffea3f0ad616ca4713ec19417d7d1fbca` |
-| Run | 2026-11-06 |
+| Run | 2026-11-23 |
 | Versions | @angular/core 22.1.2, eslint 9.35.0, @angular-eslint/template-parser 22.1.0, typescript 6.0.3 |
 | ESLint config | eslint.config.cjs, Nx workspace |
 | Mapped roles | money → <gf-value> |
 
 ## Lint
 
-- `.html` templates linted with ESLint: 155 in 0.8 s
+- `.html` templates linted with ESLint: 155 in 0.5 s
 - Templates seen by `scan` (`.html` and inline): 160
-- Stylesheets linted with stylelint: 128 in 3.7 s
-- Findings: 14, parse errors: 0, crashes: 0
+- Stylesheets linted with stylelint: 128 in 0.3 s
+- Findings: 16, parse errors: 0, crashes: 0
 
 | Rule | Message | Count | Example |
 | --- | --- | --- | --- |
-| houserules/no-glued-fields | separator | 3 | Values are glued into one text with `·`. Lines glued with separators are a typical sign of generated markup and are not allowed, metadata lines included. Put each value in its own element, space them with layout (`gap`) and mute the secondary ones. See https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-glued-fields.md |
+| houserules/no-glued-fields | separator | 5 | Values are glued into one text with `·`. Lines glued with separators are a typical sign of generated markup and are not allowed, metadata lines included. Put each value in its own element, space them with layout (`gap`) and mute the secondary ones. See https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-glued-fields.md |
 | houserules/use-money-component | moneyNextToCurrencyUsage | 7 | Show `price` with `<gf-value [isCurrency]="true" [locale]="locale" [unit]="currency" [value]="price" />` instead of formatting it by hand next to a currency sign or code. |
 | stylelint/declaration-property-unit-disallowed-list |  | 4 | Font size is set in fixed px. Use rem or a typography token of the project, so text scales up to 200% (WCAG 1.4.4). (declaration-property-unit-disallowed-list) |
 
@@ -26,13 +26,15 @@
 
 Mark each finding in the Verdict column: `ok` (a real problem), `false` (a false positive) or `?`.
 
-### houserules/no-glued-fields (3)
+### houserules/no-glued-fields (5)
 
 | # | Where | Message | Code | Verdict |
 | --- | --- | --- | --- | --- |
 | 1 | `apps/client/src/app/pages/portfolio/activities/import-activities-dialog/import-activities-dialog.html:54` | separator | `>{{ holding.assetProfile.symbol }} ·` |  |
 | 2 | `libs/ui/src/lib/account-selector/account-selector.component.html:44` | separator | `{{ account.platform?.name }} ·` |  |
-| 3 | `libs/ui/src/lib/portfolio-filter-form/portfolio-filter-form.component.html:28` | separator | `>{{ holding.assetProfile.symbol }} ·` |  |
+| 3 | `libs/ui/src/lib/assistant/assistant-list-item/assistant-list-item.html:13` | separator | `· {{ item.currency }}` |  |
+| 4 | `libs/ui/src/lib/portfolio-filter-form/portfolio-filter-form.component.html:28` | separator | `>{{ holding.assetProfile.symbol }} ·` |  |
+| 5 | `libs/ui/src/lib/symbol-autocomplete/symbol-autocomplete.component.html:30` | separator | `· {{ lookupItem.currency }}` |  |
 
 ### houserules/use-money-component (7)
 
@@ -59,6 +61,9 @@ Mark each finding in the Verdict column: `ok` (a real problem), `false` (a false
 
 ```text
 Houserules scan: 160 templates
+Roots: apps, libs
+
+Missing dependencies: @angular/animations, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/material, @angular/platform-browser, @angular/platform-browser-dynamic, @angular/router, @angular/service-worker, @bull-board/api, @bull-board/express, @bull-board/nestjs, @codewithdan/observable-store, @date-fns/utc, @internationalized/number, @ionic/angular, @keyv/redis, @modelcontextprotocol/core, @modelcontextprotocol/node, @modelcontextprotocol/server, @nest-lab/throttler-storage-redis, @nestjs/bull, @nestjs/cache-manager, @nestjs/common, @nestjs/config, @nestjs/core, @nestjs/event-emitter, @nestjs/jwt, @nestjs/microservices, @nestjs/passport, @nestjs/platform-express, @nestjs/schedule, @nestjs/serve-static, @nestjs/throttler, @openrouter/ai-sdk-provider, @prisma/adapter-pg, @prisma/client, @rekog/mcp-nest, @simplewebauthn/browser, @simplewebauthn/server, ai, alphavantage, big.js, bootstrap, bull, chart.js, chartjs-adapter-date-fns, chartjs-chart-treemap, chartjs-plugin-annotation, chartjs-plugin-datalabels, cheerio, class-transformer, class-validator, color, cookie-parser, countries-and-timezones, countries-list, countup.js, date-fns, dotenv, dotenv-expand, envalid, express, fast-redact, fuse.js, google-spreadsheet, helmet, http-status-codes, ionicons, jsonpath, katex, lodash-es, marked, marked-katex-extension, ms, ng-extract-i18n-merge, ngx-device-detector, ngx-markdown, ngx-skeleton-loader, open-color, papaparse, passport, passport-google-oauth20, passport-headerapikey, passport-jwt, passport-openidconnect, reflect-metadata, stripe, svgmap, tablemark, twitter-api-v2, undici, uuid, yahoo-finance2, zod, @angular-devkit/build-angular, @angular-devkit/core, @angular-devkit/schematics, @angular/cli, @angular/compiler-cli, @angular/language-service, @angular/localize, @angular/pwa, @eslint/js, @nestjs/schematics, @nestjs/testing, @nx/angular, @nx/eslint, @nx/eslint-plugin, @nx/jest, @nx/js, @nx/nest, @nx/node, @nx/storybook, @nx/web, @nx/webpack, @nx/workspace, @prisma/config, @schematics/angular, @storybook/addon-docs, @storybook/addon-themes, @storybook/angular, @trivago/prettier-plugin-sort-imports, husky, jest-environment-jsdom, jest-environment-node, jest-preset-angular, nx, prettier, prettier-plugin-organize-attributes, prisma, react, react-dom, replace-in-file, shx, storybook, ts-jest, ts-node, typescript-eslint, webpack, webpack-cli
 
 Money is shown in 2 ways:
   - <gf-value> component: 188 uses

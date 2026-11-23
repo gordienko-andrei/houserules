@@ -3,9 +3,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../config/load-config';
 import { createFixtureProject } from '../testing/fixture-project';
-import { renderAgentsSection, SECTION_END, SECTION_START } from './agents-section';
+import { renderAgentsSection, renderContext, SECTION_END, SECTION_START } from './agents-section';
 import { generateFiles } from './generate-files';
 import { renderPlanSkill } from './skills';
+import { resolveRules } from '../config/resolve-rules';
 import { ensureAgentsImport, upsertSection } from './upsert-section';
 
 const CONFIG = parseConfig({
@@ -25,25 +26,48 @@ describe('renderAgentsSection', () => {
     expect(section).toMatchSnapshot();
   });
 
-  it('lists mapped roles with their usage and the roles without a component', () => {
-    expect(section).toContain('| money | An amount of money.');
-    expect(section).toContain('| rating | Product rating from 0 to 5 | `<ui-stars [value]="$value" />` |');
-    expect(section).toContain('The project has no component for: status, metric, issue, comparison, tip, steps, code, action.');
+  it('keeps persistent instructions short and loads selected role details on demand', () => {
+    const large = parseConfig({ roles: Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`role${index}`, { component: `ui-item-${index}`, usage: `<ui-item-${index} />`, description: 'Item' }])) });
+    expect(renderAgentsSection(large)).toBe(section);
+    expect(section).toContain('houserules context --list');
+    expect(section).not.toContain('ui-stars');
+    const selected = renderContext(CONFIG, { money: CONFIG.roles['money']! });
+    expect(selected).toContain('<ui-money');
+    expect(selected).not.toContain('<ui-stars');
   });
 
   it('lists only the rules that are on', () => {
-    expect(section).toContain('`houserules/use-money-component`');
-    expect(section).not.toContain('`houserules/no-px-font-size`');
+    expect(renderContext(CONFIG)).toContain('`houserules/use-money-component`');
+    expect(renderContext(CONFIG)).not.toContain('`houserules/no-px-font-size`');
+  });
+
+  it('keeps disabled rules out of all generated instructions and reflects warnings', () => {
+    const config = parseConfig({ preset: 'recommended', rules: { 'no-px-font-size': 'off' } });
+    const text = renderContext(config) + renderPlanSkill(config);
+    expect(text).not.toContain('Never glue');
+    expect(text).not.toContain('never join values');
+    expect(text).not.toContain('Font sizes use');
+    expect(text).toContain('houserules/require-async-states');
+    expect(text).toContain('(warn)');
+  });
+
+  it('resolves presets and explicit overrides consistently', () => {
+    const severities = (input: Parameters<typeof parseConfig>[0]) =>
+      Object.fromEntries(resolveRules(parseConfig(input)).map((rule) => [rule.name, rule.severity]));
+    expect(severities({})['require-async-states']).toBe('error');
+    expect(severities({ preset: 'strict' })['no-glued-fields']).toBe('error');
+    expect(severities({ preset: 'recommended' })['no-glued-fields']).toBeUndefined();
+    expect(severities({ preset: 'recommended', rules: { 'no-glued-fields': 'warn' } })['no-glued-fields']).toBe('warn');
   });
 
   it('tells the agent not to invent components when no role is mapped', () => {
-    expect(renderAgentsSection(parseConfig({}))).toContain('No roles are mapped to components yet.');
+    expect(renderContext(parseConfig({}))).toContain('No roles are mapped to components yet.');
   });
 });
 
 describe('renderPlanSkill', () => {
-  it('lists built-in and custom roles', () => {
-    expect(renderPlanSkill(CONFIG)).toContain('money, status, metric, issue, comparison, tip, steps, code, action, rating');
+  it('loads selected roles on demand', () => {
+    expect(renderPlanSkill(CONFIG)).toContain('houserules context --roles');
   });
 });
 

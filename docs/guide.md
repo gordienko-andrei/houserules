@@ -3,7 +3,7 @@
 Houserules keeps AI agents and developers inside the design system of an Angular project. You map data roles
 (money, status, metric…) to your own components and pipes once, and Houserules:
 
-- writes that mapping into `AGENTS.md` and agent skills, so an agent knows what to use before it writes a template;
+- writes concise instructions into `AGENTS.md` and agent skills, and supplies selected role mappings on demand;
 - checks templates with ESLint and stylesheets with stylelint, so a wrong template fails with a message that names
   the right component.
 
@@ -61,6 +61,15 @@ npx houserules init
 ```
 
 `init` creates:
+
+New configs select the `recommended` preset. It reports resource-state findings as warnings and leaves
+`no-glued-fields` off. Select `preset: 'strict'` to enable all applicable rules as errors. Existing configs
+without a preset retain their previous defaults. Explicit `rules` settings override the preset.
+The separate `houserules/stylelint` configuration controls stylesheet checks independently.
+
+By default scan searches existing `src`, `apps`, `libs` and `projects` directories and
+`sourceRoot` directories declared in `angular.json`. Set
+`scan: { roots: ['apps', 'shared'] }` to choose directories relative to the project root.
 
 | File | What it is |
 | --- | --- |
@@ -276,7 +285,7 @@ work:
    by the lint messages.
 3. Switch the rules back to `error` (or remove them from `rules`) once a rule is clean.
 
-New screens get the right context from `AGENTS.md` from the first day, even while old ones are being fixed.
+Agents can request the roles relevant to a new screen while old screens are being fixed.
 
 Do not silence rules with `eslint-disable` comments: an agent copies what it sees and will silence them too.
 If a rule is wrong for a case, open an issue with the template.
@@ -284,7 +293,7 @@ If a rule is wrong for a case, open an issue with the template.
 ## 8. Daily use
 
 - **Agents.** Claude Code reads `CLAUDE.md` → `AGENTS.md` and picks up the skills from `.claude/skills/`. Other
-  agents that read `AGENTS.md` (Codex, Cursor, Copilot) get the roles table and the rules. Ask an agent to plan a
+  agents that read `AGENTS.md` get the same instruction to retrieve relevant roles. Ask an agent to plan a
   screen first, or to use the `houserules-plan` skill, for screens with backend data.
 - **Config changes.** Edit `houserules.config.ts`, run `npx houserules validate` and `npx houserules generate`, and
   commit the config together with the generated files.
@@ -301,8 +310,8 @@ npx eslint .
 npx stylelint "src/**/*.{css,scss}"
 ```
 
-`generate --check` fails when `AGENTS.md` or the skills are out of date with the config, so the agent context never
-drifts from the checks.
+`generate --check` detects outdated generated instructions. Role mappings and project guidance are read directly
+from the current config by `context`.
 
 ## Commands
 
@@ -310,6 +319,8 @@ drifts from the checks.
 | --- | --- |
 | `houserules init` | Creates the config if missing, writes the `AGENTS.md` section, `CLAUDE.md` import and skills. |
 | `houserules scan` | Facts about components, pipes and money in templates. `--json` for agents. |
+| `houserules context --list` | List mapped role names and descriptions. |
+| `houserules context --roles money,status` | Load selected mappings and project guidance. Use `--guidance` when no role applies. |
 | `houserules validate` | Checks the config against the project. Exit code 1 on errors. |
 | `houserules generate` | Updates generated files from the config. `--check` only checks them. |
 

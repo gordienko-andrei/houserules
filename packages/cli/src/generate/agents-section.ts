@@ -1,18 +1,12 @@
 import { resolveRules } from '../config/resolve-rules';
-import { BUILT_IN_ROLES, findBuiltInRole } from '../config/roles';
+import { RULE_METADATA } from '../config/rule-metadata';
+import { findBuiltInRole } from '../config/roles';
 import type { HouserulesConfig, RoleMapping } from '../config/schema';
 import { ruleDocsUrl } from '../rule-docs';
 import { PLAN_SKILL_NAME, SKILLS_DIRECTORY } from './skills';
 
 export const SECTION_START = '<!-- houserules:start -->';
 export const SECTION_END = '<!-- houserules:end -->';
-
-const RULE_SUMMARIES: Readonly<Record<string, string>> = {
-  'use-money-component': 'money is shown only with the money component or pipe from the table above',
-  'no-glued-fields': 'separate values are never glued into one text with `·`, `•`, `|`, commas or arrows',
-  'require-async-states': 'async data has loading, error and (for lists) empty states',
-  'no-px-font-size': 'font sizes are not set in fixed `px`',
-};
 
 function escapeCell(text: string): string {
   return text.replaceAll('|', '\\|').replaceAll('\n', ' ');
@@ -28,15 +22,11 @@ function rolesTable(config: HouserulesConfig): string[] {
   if (mapped.length === 0) {
     return ['No roles are mapped to components yet. Show data with plain semantic markup and do not invent components.'];
   }
-  const unmapped = BUILT_IN_ROLES.map((role) => role.name).filter((name) => config.roles[name] === undefined);
   const lines = [
     '| Role | When | Show with (`$value` is the shown expression) |',
     '| --- | --- | --- |',
     ...mapped.map(([name, role]) => roleRow(name, role)),
   ];
-  if (unmapped.length > 0) {
-    lines.push('', `The project has no component for: ${unmapped.join(', ')}. Use plain semantic markup for them and do not invent components.`);
-  }
   return lines;
 }
 
@@ -58,7 +48,7 @@ function checksSection(config: HouserulesConfig): string[] {
     'ESLint (`eslint-plugin-houserules`) checks templates. Run it after changing a template and fix every error as its message says; each rule page shows how to fix it:',
     '',
     ...resolveRules(config).map(
-      (rule) => `- [\`houserules/${rule.name}\`](${ruleDocsUrl(rule.name)}): ${RULE_SUMMARIES[rule.name] ?? ''}.`,
+      (rule) => `- [\`houserules/${rule.name}\`](${ruleDocsUrl(rule.name)}) (${rule.severity}): ${RULE_METADATA[rule.name].summary}.`,
     ),
     '',
     'Do not silence these rules with `eslint-disable`, do not remove currency signs or move formatting to TypeScript to make the linter pass. If a rule looks wrong for a case, say so in your answer.',
@@ -77,25 +67,35 @@ function optionalSections(config: HouserulesConfig): string[] {
   return lines;
 }
 
-export function renderAgentsSection(config: HouserulesConfig): string {
+export function renderContext(config: HouserulesConfig, roles: HouserulesConfig['roles'] = config.roles, includeProjectDetails = true): string {
   return [
-    SECTION_START,
-    '## Houserules: how this project shows data',
-    '',
-    'Generated from `houserules.config.ts` by `npx houserules generate`. Do not edit this section by hand.',
-    '',
-    `Before you build or change a screen that shows backend data, follow \`${SKILLS_DIRECTORY}/${PLAN_SKILL_NAME}/SKILL.md\`: read the data types, give every shown field a role, then write the template.`,
-    '',
     '### Roles and components',
     '',
-    ...rolesTable(config),
+    ...rolesTable({ ...config, roles }),
     '',
     '### Rules for every screen',
     '',
-    ...SCREEN_RULES,
+    ...SCREEN_RULES.filter((rule) => {
+      const errors = new Set(resolveRules(config).filter((item) => item.severity === 'error').map((item) => item.name));
+      if (rule.startsWith('- One meaning')) return errors.has('no-glued-fields');
+      if (rule.startsWith('- Async data')) return errors.has('require-async-states');
+      if (rule.startsWith('- Font sizes')) return errors.has('no-px-font-size');
+      return config.preset !== 'recommended';
+    }),
     '',
     ...checksSection(config),
-    ...optionalSections(config),
+    ...(includeProjectDetails ? optionalSections(config) : []),
+  ].join('\n');
+}
+
+export function renderAgentsSection(_config: HouserulesConfig): string {
+  return [
+    SECTION_START,
+    '## Houserules',
+    '',
+    'Before changing an Angular template, run `npx houserules context --list`, then request relevant roles with `npx houserules context --roles money,status` (replace these names). If no mapped role applies, run `npx houserules context --guidance`. Read the returned guidance before editing. For domain glossary and reference files, add `--project`. Inspect the data contract when unsure. Run project checks after editing and report unresolved issues.',
+    '',
+    `For screen planning, follow \`${SKILLS_DIRECTORY}/${PLAN_SKILL_NAME}/SKILL.md\`.`,
     SECTION_END,
   ].join('\n');
 }
