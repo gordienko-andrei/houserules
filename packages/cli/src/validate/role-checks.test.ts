@@ -6,6 +6,8 @@ import { createFixtureProject, SAMPLE_PROJECT } from '../testing/fixture-project
 import { checkRoleTarget, checkUsageCallsTarget, checkUsageSyntax } from './role-checks';
 import { validateProject } from './validate-project';
 
+const LINT_IMPORT_TIMEOUT_MS = 30_000;
+
 function role(input: Record<string, string>): RoleMapping {
   const mapping = parseConfig({ roles: { status: input } }).roles['status'];
   if (mapping === undefined) {
@@ -73,5 +75,5 @@ describe('validateProject', () => {
       'ok rule houserules/require-async-states is on.',
       'ok rule houserules/no-px-font-size is on.',
     ]);
-  });
+  }, LINT_IMPORT_TIMEOUT_MS);
 });
