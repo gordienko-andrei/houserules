@@ -2,16 +2,20 @@
 
 ESLint rules for Angular templates that keep AI agents and developers inside your design system.
 
-Step by step setup: [Installing and using Houserules](../../docs/guide.md).
+> Early preview (0.x): the config format, rule options and messages may change between minor versions.
+
+Step by step setup: [Installing and using Houserules](https://github.com/gordienko-andrei/houserules/blob/main/docs/guide.md).
 
 ## Rules
 
 | Rule | Description | Needs a role |
 | --- | --- | --- |
-| [`use-money-component`](docs/rules/use-money-component.md) | Require money values to be rendered by the project money component or pipe | `money` |
-| [`no-glued-fields`](docs/rules/no-glued-fields.md) | Disallow gluing separate values into one text with separators or arrows | no |
-| [`require-async-states`](docs/rules/require-async-states.md) | Require loading, error and empty states where async data is shown | no |
-| [`no-px-font-size`](docs/rules/no-px-font-size.md) | Disallow font sizes in fixed `px` in Angular templates | no |
+| [`use-money-component`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/use-money-component.md) | Require money values to be rendered by the project money component or pipe | `money` |
+| [`no-glued-fields`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-glued-fields.md) | Disallow gluing separate values into one text with separators or arrows | no |
+| [`require-async-states`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/require-async-states.md) | Require loading, error and empty states where async data is shown | no |
+| [`no-px-font-size`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-px-font-size.md) | Disallow font sizes in fixed `px` in Angular templates | no |
+| [`prefer-role-component`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/prefer-role-component.md) | Require the role component instead of the native elements it replaces | any role with `replaces` |
+| [`restricted-template-syntax`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/restricted-template-syntax.md) | Disallow template syntax listed in the project restrictions | no, needs `restrictions` |
 
 A rule that needs a role is on only when `houserules.config.ts` maps that role to a component or a pipe.
 Requiring a component the project does not have would push an agent to invent one or to work around the check.

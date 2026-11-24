@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { Linter } from 'eslint';
 import { afterEach, describe, expect, it } from 'vitest';
 import houserules from '../index';
+import { RULE_METADATA } from 'houserules';
 
 const MONEY_ROLE = {
   component: 'ui-money',
@@ -18,6 +19,9 @@ function lint(code: string, configs: Linter.Config[], fileName = 'src/app/order.
 }
 
 describe('configs.recommended', () => {
+  it('has shared metadata for every exported rule', () => {
+    expect(Object.keys(RULE_METADATA).sort()).toEqual(Object.keys(houserules.rules).sort());
+  });
   const directories: string[] = [];
 
   afterEach(() => {
@@ -47,9 +51,36 @@ describe('configs.recommended', () => {
     ]);
   });
 
+  it('reports native elements a role replaces, except in the files of the role component', () => {
+    const configs = houserules.configs.recommended({
+      config: {
+        roles: {
+          action: { component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])', files: 'src/app/ui/button/**' },
+        },
+      },
+    });
+    const template = '<button type="button">Retry</button><button pButton>Save</button>';
+    expect(lint(template, configs)).toEqual([
+      'houserules/prefer-role-component: Native `<button>` matches `button:not([pButton])`, which the `action` role replaces. Use <p-button> as in `<p-button [label]="$value" />`. See https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/prefer-role-component.md',
+    ]);
+    expect(lint(template, configs, 'src/app/ui/button/button.component.html')).toEqual([]);
+  });
+
   it('applies severities from the config', () => {
     const configs = houserules.configs.recommended({ config: { rules: { 'no-px-font-size': 'off' } } });
     expect(lint('<p style="font-size: 12px">a</p>', configs)).toEqual([]);
+  });
+
+  it('applies recommended defaults and explicit overrides', () => {
+    const recommended = houserules.configs.recommended({ config: { preset: 'recommended' } });
+    const template = '<p>{{ a }} • {{ b }}</p>';
+    expect(lint(template, recommended)).toEqual([]);
+    const overridden = houserules.configs.recommended({
+      config: { preset: 'recommended', rules: { 'no-glued-fields': 'warn' } },
+    });
+    const messages = new Linter({ configType: 'flat' }).verify(template, overridden, 'src/app/test.html');
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.severity).toBe(1);
   });
 
   it('loads houserules.config.ts from the given directory', () => {

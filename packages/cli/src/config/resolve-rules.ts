@@ -1,4 +1,5 @@
 import type { HouserulesConfig, RoleMapping, RuleName, RuleSeverity } from './schema';
+import { RULE_METADATA } from './rule-metadata';
 
 export interface ResolvedRule {
   readonly name: RuleName;
@@ -7,13 +8,11 @@ export interface ResolvedRule {
   readonly ignoredFiles: readonly string[];
 }
 
-const DEFAULT_SEVERITY = 'error';
-
-function toFileList(files: RoleMapping['files']): readonly string[] {
-  if (files === undefined) {
+function asList(value: RoleMapping['files'] | RoleMapping['replaces']): readonly string[] {
+  if (value === undefined) {
     return [];
   }
-  return typeof files === 'string' ? [files] : files;
+  return typeof value === 'string' ? [value] : value;
 }
 
 function moneyOptions(money: RoleMapping, config: HouserulesConfig): Record<string, unknown> {
@@ -38,23 +37,44 @@ function glueOptions(config: HouserulesConfig): Record<string, unknown> | undefi
   return Object.keys(usages).length === 0 ? undefined : { usages };
 }
 
+function replacementRule(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
+  const replacing = Object.entries(config.roles).filter(([, role]) => role.replaces !== undefined && role.component !== undefined);
+  if (replacing.length === 0) return [];
+  const replacements = replacing.flatMap(([role, mapping]) =>
+    asList(mapping.replaces).map((selector) => ({ role, selector, component: mapping.component, usage: mapping.usage })),
+  );
+  const ignoredFiles = [...new Set(replacing.flatMap(([, mapping]) => asList(mapping.files)))];
+  return [{ name: 'prefer-role-component', options: { replacements }, ignoredFiles }];
+}
+
 function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
   const money = config.roles['money'];
   const roleBound: Omit<ResolvedRule, 'severity'>[] =
     money === undefined
       ? []
-      : [{ name: 'use-money-component', options: moneyOptions(money, config), ignoredFiles: toFileList(money.files) }];
+      : [{ name: 'use-money-component', options: moneyOptions(money, config), ignoredFiles: asList(money.files) }];
   return [
     ...roleBound,
     { name: 'no-glued-fields', options: glueOptions(config), ignoredFiles: [] },
     { name: 'require-async-states', ignoredFiles: [] },
     { name: 'no-px-font-size', ignoredFiles: [] },
+    ...replacementRule(config),
+    ...(config.restrictions.length === 0
+      ? []
+      : [{
+          name: 'restricted-template-syntax' as const,
+          options: { restrictions: config.restrictions.map(({ selector, message }) => ({ selector, message })) },
+          ignoredFiles: [],
+        }]),
   ];
 }
 
 export function resolveRules(config: HouserulesConfig): ResolvedRule[] {
   return candidateRules(config).flatMap((rule) => {
-    const severity = config.rules[rule.name] ?? DEFAULT_SEVERITY;
+    const metadata = RULE_METADATA[rule.name];
+    if (metadata.role !== undefined && config.roles[metadata.role] === undefined) return [];
+    const defaultSeverity = config.preset === 'recommended' ? metadata.recommended : metadata.strict;
+    const severity = config.rules[rule.name] ?? defaultSeverity;
     return severity === 'off' ? [] : [{ ...rule, severity }];
   });
 }

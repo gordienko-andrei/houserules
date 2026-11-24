@@ -53,6 +53,43 @@ describe('resolveRules', () => {
     });
   });
 
+  it('turns on prefer-role-component only for roles with replaces', () => {
+    expect(ruleNames({ roles: { action: { component: 'p-button', usage: '<p-button />' } } })).not.toContain('prefer-role-component');
+    const rules = resolveRules(
+      parseConfig({
+        preset: 'recommended',
+        roles: {
+          action: { component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])', files: 'src/ui/button/**' },
+          toggle: { component: 'p-checkbox', usage: '<p-checkbox [binary]="true" />', replaces: ['input[type=checkbox]'], description: 'A boolean choice' },
+        },
+      }),
+    );
+    expect(rules.find((rule) => rule.name === 'prefer-role-component')).toEqual({
+      name: 'prefer-role-component',
+      severity: 'warn',
+      options: {
+        replacements: [
+          { role: 'action', selector: 'button:not([pButton])', component: 'p-button', usage: '<p-button [label]="$value" />' },
+          { role: 'toggle', selector: 'input[type=checkbox]', component: 'p-checkbox', usage: '<p-checkbox [binary]="true" />' },
+        ],
+      },
+      ignoredFiles: ['src/ui/button/**'],
+    });
+  });
+
+  it('passes restriction selectors and messages without the examples', () => {
+    expect(ruleNames({})).not.toContain('restricted-template-syntax');
+    const rules = resolveRules(
+      parseConfig({ restrictions: [{ selector: 'BindingPipe[name="date"]', message: 'Use <app-date>.', bad: '{{ d | date }}', good: '<app-date />' }] }),
+    );
+    expect(rules.find((rule) => rule.name === 'restricted-template-syntax')).toEqual({
+      name: 'restricted-template-syntax',
+      severity: 'error',
+      options: { restrictions: [{ selector: 'BindingPipe[name="date"]', message: 'Use <app-date>.' }] },
+      ignoredFiles: [],
+    });
+  });
+
   it('applies severity overrides and drops rules turned off', () => {
     const rules = resolveRules(parseConfig({ rules: { 'no-glued-fields': 'warn', 'no-px-font-size': 'off' } }));
     expect(rules.map((rule) => [rule.name, rule.severity])).toEqual([

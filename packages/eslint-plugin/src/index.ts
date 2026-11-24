@@ -1,8 +1,11 @@
 import type { ESLint } from 'eslint';
+import { version } from '../package.json';
 import { createRecommended } from './configs/recommended';
 import { RULE_NAME as NO_GLUED_FIELDS, noGluedFields } from './rules/no-glued-fields/rule';
 import { RULE_NAME as NO_PX_FONT_SIZE, noPxFontSize } from './rules/no-px-font-size/rule';
+import { RULE_NAME as PREFER_ROLE_COMPONENT, preferRoleComponent } from './rules/prefer-role-component/rule';
 import { RULE_NAME as REQUIRE_ASYNC_STATES, requireAsyncStates } from './rules/require-async-states/rule';
+import { RULE_NAME as RESTRICTED_TEMPLATE_SYNTAX, restrictedTemplateSyntax } from './rules/restricted-template-syntax/rule';
 import { RULE_NAME as USE_MONEY_COMPONENT, useMoneyComponent } from './rules/use-money-component/rule';
 
 export type { RecommendedOptions } from './configs/recommended';
@@ -12,12 +15,14 @@ const rules = {
   [NO_GLUED_FIELDS]: noGluedFields,
   [REQUIRE_ASYNC_STATES]: requireAsyncStates,
   [NO_PX_FONT_SIZE]: noPxFontSize,
+  [PREFER_ROLE_COMPONENT]: preferRoleComponent,
+  [RESTRICTED_TEMPLATE_SYNTAX]: restrictedTemplateSyntax,
 };
 
 export const plugin = {
   meta: {
     name: 'eslint-plugin-houserules',
-    version: '0.0.0',
+    version,
   },
   // typescript-eslint rule types are stricter than ESLint core ones, so eslint.config.ts would reject them without this cast.
   rules: rules as unknown as NonNullable<ESLint.Plugin['rules']>,

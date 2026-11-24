@@ -11,6 +11,8 @@ describe('eslint-plugin-houserules', () => {
       'no-glued-fields',
       'require-async-states',
       'no-px-font-size',
+      'prefer-role-component',
+      'restricted-template-syntax',
     ]);
     expect(houserules.rules).toBe(plugin.rules);
   });

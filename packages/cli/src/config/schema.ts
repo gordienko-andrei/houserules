@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseElementSelector } from './element-selector';
 import { isBuiltInRole } from './roles';
 
 export const VALUE_PLACEHOLDER = '$value';
@@ -8,15 +9,23 @@ export const RULE_NAMES = [
   'no-glued-fields',
   'require-async-states',
   'no-px-font-size',
+  'prefer-role-component',
+  'restricted-template-syntax',
 ] as const;
 
 export type RuleName = (typeof RULE_NAMES)[number];
 
 const nonEmptyString = z.string().trim().min(1);
 
+const elementSelector = nonEmptyString.refine((selector) => parseElementSelector(selector) !== undefined, {
+  message: 'Use a tag with optional attribute conditions, for example `ui-money`, `button[pButton]` or `button:not([pButton])`.',
+});
+
 const roleMappingSchema = z
   .strictObject({
-    component: nonEmptyString.optional().describe('Selector of the component that shows this role.'),
+    component: elementSelector
+      .optional()
+      .describe('Selector of the component or directive that shows this role: `ui-money` or `button[pButton]`.'),
     pipe: nonEmptyString.optional().describe('Name of the pipe that shows this role.'),
     usage: nonEmptyString.describe('A real call to copy, with `$value` in place of the shown expression.'),
     description: nonEmptyString.optional().describe('When to use the role. Required for custom roles.'),
@@ -24,18 +33,36 @@ const roleMappingSchema = z
       .union([nonEmptyString, z.array(nonEmptyString)])
       .optional()
       .describe('Files of the component itself. Rules of the role do not check them.'),
+    replaces: z
+      .union([elementSelector, z.array(elementSelector).min(1)])
+      .optional()
+      .describe('Native elements the component is used instead of, for example `button:not([pButton])`.'),
   })
   .refine((role) => (role.component === undefined) !== (role.pipe === undefined), {
     message: 'Set exactly one of `component` or `pipe`.',
+  })
+  .refine((role) => role.replaces === undefined || role.component !== undefined, {
+    message: '`replaces` needs a `component`: a pipe cannot replace an element.',
+    path: ['replaces'],
   });
+
+const restrictionSchema = z.strictObject({
+  selector: nonEmptyString.describe('An ESLint selector over the template AST, for example `BindingPipe[name="date"]`.'),
+  message: nonEmptyString.describe('What to use instead, shown by the linter and to agents.'),
+  bad: nonEmptyString.describe('A template the restriction must report.'),
+  good: nonEmptyString.describe('A template that must pass every Houserules rule.'),
+});
 
 export const configSchema = z
   .strictObject({
+    preset: z.enum(['recommended', 'strict']).optional(),
+    scan: z.strictObject({ roots: z.array(nonEmptyString).min(1).optional() }).optional(),
     roles: z.record(nonEmptyString, roleMappingSchema).default({}),
     currencyWords: z.array(nonEmptyString).default([]).describe('Currency codes or words, for example `руб.`.'),
     moneyPipes: z.array(nonEmptyString).default(['currency']).describe('Pipes that must not format money.'),
     glossary: nonEmptyString.optional().describe('Domain terms and how to read values, in Markdown.'),
     examples: z.array(nonEmptyString).default([]).describe('Paths to reference components agents should copy.'),
+    restrictions: z.array(restrictionSchema).default([]).describe('Project bans that are not tied to a role, with examples.'),
     rules: z.partialRecord(z.enum(RULE_NAMES), z.enum(['off', 'warn', 'error'])).default({}),
   })
   .superRefine((config, context) => {
@@ -61,6 +88,7 @@ export const configSchema = z
 export type HouserulesConfigInput = z.input<typeof configSchema>;
 export type HouserulesConfig = z.output<typeof configSchema>;
 export type RoleMapping = z.output<typeof roleMappingSchema>;
+export type Restriction = z.output<typeof restrictionSchema>;
 export type RuleSeverity = 'off' | 'warn' | 'error';
 
 export function defineConfig(config: HouserulesConfigInput): HouserulesConfigInput {

@@ -3,7 +3,7 @@
 Houserules keeps AI agents and developers inside the design system of an Angular project. You map data roles
 (money, status, metric…) to your own components and pipes once, and Houserules:
 
-- writes that mapping into `AGENTS.md` and agent skills, so an agent knows what to use before it writes a template;
+- writes concise instructions into `AGENTS.md` and agent skills, and supplies selected role mappings on demand;
 - checks templates with ESLint and stylesheets with stylelint, so a wrong template fails with a message that names
   the right component.
 
@@ -32,9 +32,12 @@ Most Angular projects already have `eslint` and `@angular-eslint/template-parser
 npm i -D eslint @angular-eslint/template-parser
 ```
 
-### Before the packages are on npm
+Houserules is an early preview (0.x): the config format, rule options and messages may change between minor
+versions. Pin the exact version (`npm i -D -E`) and update both packages together.
 
-Build tarballs from this repository and install them into your project:
+### From a local checkout
+
+To try unreleased changes, build tarballs from this repository and install them into your project:
 
 ```sh
 # in the Houserules repository
@@ -48,11 +51,12 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/houserules-0.0.0.tgz ../houserules-packs/eslint-plugin-houserules-0.0.0.tgz
+npm i -D ../houserules-packs/houserules-0.1.0.tgz ../houserules-packs/eslint-plugin-houserules-0.1.0.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
-dependencies with a real one. After changing Houserules, pack and install again.
+dependencies with a real one. Installing straight from GitHub does not work: the packages live in subfolders of a
+monorepo and the repository has no built files.
 
 ## 2. Create the config
 
@@ -62,6 +66,15 @@ npx houserules init
 
 `init` creates:
 
+New configs select the `recommended` preset. It reports resource-state findings as warnings and leaves
+`no-glued-fields` off. Select `preset: 'strict'` to enable all applicable rules as errors. Existing configs
+without a preset retain their previous defaults. Explicit `rules` settings override the preset.
+The separate `houserules/stylelint` configuration controls stylesheet checks independently.
+
+By default scan searches existing `src`, `apps`, `libs` and `projects` directories and
+`sourceRoot` directories declared in `angular.json`. Set
+`scan: { roots: ['apps', 'shared'] }` to choose directories relative to the project root.
+
 | File | What it is |
 | --- | --- |
 | `houserules.config.ts` | The config with no roles yet. |
@@ -69,6 +82,7 @@ npx houserules init
 | `CLAUDE.md` | An `@AGENTS.md` import, so Claude Code reads `AGENTS.md`. Added only if missing. |
 | `.claude/skills/houserules-setup/SKILL.md` | How an agent sets up Houserules. |
 | `.claude/skills/houserules-plan/SKILL.md` | How an agent plans a screen before writing a template. |
+| `.claude/skills/houserules-learn/SKILL.md` | How an agent turns your corrections of its markup into config. |
 
 Commit all of them: they are the context your agents get.
 
@@ -136,12 +150,52 @@ export default defineConfig({
 ```
 
 - `component` or `pipe`: exactly one of them. For a pipe, for example
-  `{ pipe: 'tuiAmount', usage: '{{ $value | tuiAmount: "RUB" }}' }`.
+  `{ pipe: 'tuiAmount', usage: '{{ $value | tuiAmount: "RUB" }}' }`. `component` is a selector: a custom element
+  (`app-money`) or a directive on an element (`button[mat-flat-button]`, `button[pButton]`, `a[tuiButton]`).
+  `validate` finds directives declared in the project (`@Directive`, `@Component`) and in installed libraries.
 - `usage`: the exact call agents should copy, with `$value` in place of the shown expression. Take it from the most
   common real call in `scan`. Keep only what is the same for every value: do not hard-code `currency="RUB"` if
   amounts come in several currencies.
 - `files`: the folder of the component itself. Its own template may format money, so the money rule is off there.
 - `currencyWords`: currency codes or words your templates write as text (`руб.`, `USD`).
+- `replaces`: native elements the role component is used instead of, for example
+  `{ component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])' }`. The
+  [`prefer-role-component`](../packages/eslint-plugin/docs/rules/prefer-role-component.md) rule then reports such
+  elements everywhere except the role `files`. Elements that already carry a directive (`<button matChipRemove>`) are
+  skipped, so `replaces: 'button'` is usually enough.
+
+### Project restrictions
+
+A ban that is not about a role goes to `restrictions`, with examples that `validate` checks:
+
+```ts
+restrictions: [
+  {
+    selector: 'BindingPipe[name="date"]',
+    message: 'Show dates with <app-date [value]="…" />.',
+    bad: '<p>{{ order.createdAt | date: "dd.MM" }}</p>',
+    good: '<app-date [value]="order.createdAt" />',
+  },
+],
+```
+
+The rule of thumb: "use the role component instead of this native element" is `replaces`, everything else is a
+restriction. See [`restricted-template-syntax`](../packages/eslint-plugin/docs/rules/restricted-template-syntax.md).
+
+A role can describe a pattern as well as a value. A custom role with a `description` and a full `usage` carries the
+inputs your team always sets, for example a data table with gridlines and striped rows. Agents copy the `usage`
+from `houserules context`.
+
+### Learn from corrections
+
+After you have corrected a screen an agent built, ask:
+
+> Learn Houserules conventions from my corrections between `<agent commit>` and `<my commit>`.
+
+The `houserules-learn` skill sorts each correction into a config change, a code-review matter (data, logic), a
+style matter (tokens, stylelint) or a one-screen decision. It proposes config only for conventions with evidence
+elsewhere in the project or your explicit confirmation, then lints the agent's version to show which mistakes the
+new config now catches.
 
 All fields are described in the [`houserules` README](../packages/cli/README.md#config).
 
@@ -276,7 +330,7 @@ work:
    by the lint messages.
 3. Switch the rules back to `error` (or remove them from `rules`) once a rule is clean.
 
-New screens get the right context from `AGENTS.md` from the first day, even while old ones are being fixed.
+Agents can request the roles relevant to a new screen while old screens are being fixed.
 
 Do not silence rules with `eslint-disable` comments: an agent copies what it sees and will silence them too.
 If a rule is wrong for a case, open an issue with the template.
@@ -284,7 +338,7 @@ If a rule is wrong for a case, open an issue with the template.
 ## 8. Daily use
 
 - **Agents.** Claude Code reads `CLAUDE.md` → `AGENTS.md` and picks up the skills from `.claude/skills/`. Other
-  agents that read `AGENTS.md` (Codex, Cursor, Copilot) get the roles table and the rules. Ask an agent to plan a
+  agents that read `AGENTS.md` get the same instruction to retrieve relevant roles. Ask an agent to plan a
   screen first, or to use the `houserules-plan` skill, for screens with backend data.
 - **Config changes.** Edit `houserules.config.ts`, run `npx houserules validate` and `npx houserules generate`, and
   commit the config together with the generated files.
@@ -301,8 +355,8 @@ npx eslint .
 npx stylelint "src/**/*.{css,scss}"
 ```
 
-`generate --check` fails when `AGENTS.md` or the skills are out of date with the config, so the agent context never
-drifts from the checks.
+`generate --check` detects outdated generated instructions. Role mappings and project guidance are read directly
+from the current config by `context`.
 
 ## Commands
 
@@ -310,6 +364,8 @@ drifts from the checks.
 | --- | --- |
 | `houserules init` | Creates the config if missing, writes the `AGENTS.md` section, `CLAUDE.md` import and skills. |
 | `houserules scan` | Facts about components, pipes and money in templates. `--json` for agents. |
+| `houserules context --list` | List mapped role names and descriptions. |
+| `houserules context --roles money,status` | Load selected mappings and project guidance. Use `--guidance` when no role applies. |
 | `houserules validate` | Checks the config against the project. Exit code 1 on errors. |
 | `houserules generate` | Updates generated files from the config. `--check` only checks them. |
 

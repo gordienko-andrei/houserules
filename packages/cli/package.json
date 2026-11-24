@@ -1,9 +1,29 @@
 {
   "name": "houserules",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Turns an Angular design system into context and checks for AI agents",
-  "type": "module",
+  "keywords": [
+    "angular",
+    "design-system",
+    "ai-agents",
+    "agents-md",
+    "eslint",
+    "lint",
+    "cli"
+  ],
+  "homepage": "https://github.com/gordienko-andrei/houserules/blob/main/docs/guide.md",
+  "bugs": "https://github.com/gordienko-andrei/houserules/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gordienko-andrei/houserules.git",
+    "directory": "packages/cli"
+  },
   "license": "MIT",
+  "author": "Andrei Gordienko",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "houserules": "./dist/cli.mjs"
   },
@@ -16,6 +36,7 @@
     "dist"
   ],
   "scripts": {
+    "prepack": "pnpm run build",
     "build": "tsdown src/index.ts src/cli.ts src/stylelint.ts --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -24,6 +45,7 @@
     "@angular-eslint/template-parser": "^22.6.0",
     "citty": "^0.2.2",
     "jiti": "^2.7.0",
+    "minimatch": "^10.2.6",
     "zod": "^4.6.7"
   },
   "devDependencies": {

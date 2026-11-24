@@ -6,7 +6,21 @@ export {
   parseConfig,
   type LoadedConfig,
 } from './config/load-config';
+export {
+  describeElementSelector,
+  elementFactsOf,
+  isCustomElementSelector,
+  matchesElementSelector,
+  parseElementSelector,
+  selectorCovers,
+  splitSelectorList,
+  type AttributeCondition,
+  type ElementFacts,
+  type ElementSelector,
+} from './config/element-selector';
+export { directiveAttributesOf, isPlainNativeMatch, isStandardAttribute } from './config/html-attributes';
 export { resolveRules, type ResolvedRule } from './config/resolve-rules';
+export { RULE_METADATA } from './config/rule-metadata';
 export { BUILT_IN_ROLES, findBuiltInRole, isBuiltInRole, type RoleDefinition } from './config/roles';
 export {
   RULE_NAMES,
@@ -15,6 +29,7 @@ export {
   defineConfig,
   type HouserulesConfig,
   type HouserulesConfigInput,
+  type Restriction,
   type RoleMapping,
   type RuleName,
   type RuleSeverity,

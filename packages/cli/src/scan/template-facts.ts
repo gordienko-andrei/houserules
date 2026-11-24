@@ -1,6 +1,8 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
+import { elementFactsOf, matchesElementSelector, type ElementSelector } from '../config/element-selector';
+import { directiveAttributesOf } from '../config/html-attributes';
 import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '../text/currency-text';
-import { lineAt, lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
+import { lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
 
 export interface TemplateSource {
   readonly file: string;
@@ -25,8 +27,21 @@ export interface PipeUsage {
   readonly example: UsageExample;
 }
 
+export interface ReplacedElement {
+  readonly selector: string;
+  readonly directives: readonly string[];
+  readonly example: UsageExample;
+}
+
+export interface TemplateTargets {
+  readonly elements?: readonly ElementSelector[];
+  readonly replaced?: readonly ElementSelector[];
+}
+
 export interface TemplateFacts {
   readonly elements: readonly ElementUsage[];
+  readonly targetElements: readonly ElementUsage[];
+  readonly replacedElements: readonly ReplacedElement[];
   readonly pipes: readonly PipeUsage[];
   readonly handFormattedMoney: readonly UsageExample[];
   readonly parseError?: string;
@@ -38,6 +53,26 @@ interface Offsets {
 }
 
 const MAX_EXAMPLE_LENGTH = 200;
+const lineStarts = new WeakMap<TemplateSource, number[]>();
+
+function lineNumberAt(source: TemplateSource, offset: number): number {
+  let starts = lineStarts.get(source);
+  if (starts === undefined) {
+    starts = [0];
+    for (let i = 0; i < source.text.length; i++) {
+      if (source.text[i] === '\n') starts.push(i + 1);
+    }
+    lineStarts.set(source, starts);
+  }
+  let low = 0;
+  let high = starts.length;
+  while (low + 1 < high) {
+    const middle = Math.floor((low + high) / 2);
+    if ((starts[middle] ?? 0) <= offset) low = middle;
+    else high = middle;
+  }
+  return source.firstLine + low;
+}
 const ANGULAR_BUILT_IN_ELEMENTS = new Set(['ng-container', 'ng-template', 'ng-content']);
 
 function spanOf(node: WalkedNode, key: 'sourceSpan' | 'startSourceSpan'): Offsets | undefined {
@@ -54,7 +89,16 @@ function namesOf(node: WalkedNode, key: 'attributes' | 'inputs' | 'outputs'): st
 
 function exampleAt(source: TemplateSource, offsets: Offsets, text?: string): UsageExample {
   const shown = (text ?? lineTextAt(source.text, offsets.start)).replace(/\s+/g, ' ').slice(0, MAX_EXAMPLE_LENGTH);
-  return { file: source.file, line: source.firstLine + lineAt(source.text, offsets.start) - 1, text: shown };
+  return { file: source.file, line: lineNumberAt(source, offsets.start), text: shown };
+}
+
+function usageAs(selector: string, source: TemplateSource, node: WalkedNode, offsets: Offsets): ElementUsage {
+  const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
+  return {
+    selector,
+    attributeNames: [...new Set(attributeNames)].sort(),
+    example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
+  };
 }
 
 function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | undefined {
@@ -63,12 +107,23 @@ function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | 
   if (!name.includes('-') || ANGULAR_BUILT_IN_ELEMENTS.has(name) || offsets === undefined) {
     return undefined;
   }
-  const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
-  return {
-    selector: name,
-    attributeNames: [...new Set(attributeNames)].sort(),
-    example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
-  };
+  return usageAs(name, source, node, offsets);
+}
+
+function targetUsages(source: TemplateSource, node: WalkedNode, targets: readonly ElementSelector[]): ElementUsage[] {
+  const offsets = spanOf(node, 'startSourceSpan');
+  if (targets.length === 0 || offsets === undefined) return [];
+  const facts = elementFactsOf(node);
+  return targets.filter((target) => matchesElementSelector(target, facts)).map((target) => usageAs(target.source, source, node, offsets));
+}
+
+function replacedElements(source: TemplateSource, node: WalkedNode, selectors: readonly ElementSelector[]): ReplacedElement[] {
+  const offsets = spanOf(node, 'startSourceSpan');
+  if (selectors.length === 0 || offsets === undefined) return [];
+  const facts = elementFactsOf(node);
+  return selectors
+    .filter((selector) => matchesElementSelector(selector, facts))
+    .map((selector) => ({ selector: selector.source, directives: directiveAttributesOf(facts, selector), example: exampleAt(source, offsets) }));
 }
 
 function expressionSpans(node: WalkedNode): (Offsets | undefined)[] {
@@ -87,15 +142,18 @@ function handFormattedMoneyAt(source: TemplateSource, node: WalkedNode, currency
   return spans[Math.min(...indexes)] ?? spanOf(node, 'sourceSpan');
 }
 
-export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[]): TemplateFacts {
+export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[], targets: TemplateTargets = {}): TemplateFacts {
   const elements: ElementUsage[] = [];
+  const targetElements: ElementUsage[] = [];
+  const replaced: ReplacedElement[] = [];
   const pipes: PipeUsage[] = [];
   const handFormattedMoney: UsageExample[] = [];
   let templateNodes: unknown;
   try {
     templateNodes = parseForESLint(source.text, { filePath: source.file }).ast.templateNodes;
   } catch (error) {
-    return { elements, pipes, handFormattedMoney, parseError: error instanceof Error ? error.message : String(error) };
+    const parseError = error instanceof Error ? error.message : String(error);
+    return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney, parseError };
   }
   walkTemplate(templateNodes, (node) => {
     const offsets = spanOf(node, 'sourceSpan');
@@ -104,6 +162,8 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       if (usage !== undefined) {
         elements.push(usage);
       }
+      targetElements.push(...targetUsages(source, node, targets.elements ?? []));
+      replaced.push(...replacedElements(source, node, targets.replaced ?? []));
     } else if (node.type === 'BindingPipe' && offsets !== undefined) {
       pipes.push({ name: String(node['name']), example: exampleAt(source, offsets) });
     } else if (node.type === 'Interpolation') {
@@ -113,5 +173,5 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       }
     }
   });
-  return { elements, pipes, handFormattedMoney };
+  return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney };
 }

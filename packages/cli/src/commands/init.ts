@@ -7,6 +7,7 @@ import { SETUP_SKILL_NAME, SKILLS_DIRECTORY } from '../generate/skills';
 export const CONFIG_TEMPLATE = `import { defineConfig } from 'houserules';
 
 export default defineConfig({
+  preset: 'recommended',
   roles: {},
 });
 `;
