@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from 'citty';
+import { version } from '../package.json';
 import { findConfigFile, loadConfig } from './config/load-config';
 import { formatInitResult, initProject } from './commands/init';
 import { generateFiles } from './generate/generate-files';
@@ -94,7 +95,7 @@ const validate = defineCommand({
 });
 
 const main = defineCommand({
-  meta: { name: 'houserules', description: 'Your design system, enforced for AI agents' },
+  meta: { name: 'houserules', version, description: 'Your design system, enforced for AI agents' },
   subCommands: { init, generate, scan, validate, context },
 });
 

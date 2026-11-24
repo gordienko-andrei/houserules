@@ -32,9 +32,12 @@ Most Angular projects already have `eslint` and `@angular-eslint/template-parser
 npm i -D eslint @angular-eslint/template-parser
 ```
 
-### Before the packages are on npm
+Houserules is an early preview (0.x): the config format, rule options and messages may change between minor
+versions. Pin the exact version (`npm i -D -E`) and update both packages together.
 
-Build tarballs from this repository and install them into your project:
+### From a local checkout
+
+To try unreleased changes, build tarballs from this repository and install them into your project:
 
 ```sh
 # in the Houserules repository
@@ -48,11 +51,12 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/houserules-0.0.0.tgz ../houserules-packs/eslint-plugin-houserules-0.0.0.tgz
+npm i -D ../houserules-packs/houserules-0.1.0.tgz ../houserules-packs/eslint-plugin-houserules-0.1.0.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
-dependencies with a real one. After changing Houserules, pack and install again.
+dependencies with a real one. Installing straight from GitHub does not work: the packages live in subfolders of a
+monorepo and the repository has no built files.
 
 ## 2. Create the config
 

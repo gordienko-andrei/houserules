@@ -2,11 +2,13 @@
 
 Turns the design system of an Angular project into context and checks for AI agents.
 
+> Early preview (0.x): the config format, rule options and messages may change between minor versions.
+
 `houserules.config.ts` maps data roles (money, status, metric…) to the components and pipes of your project.
 From it Houserules generates the AGENTS.md section and agent skills, and
-[`eslint-plugin-houserules`](../eslint-plugin) checks templates against it.
+[`eslint-plugin-houserules`](https://github.com/gordienko-andrei/houserules/tree/main/packages/eslint-plugin) checks templates against it.
 
-Step by step setup: [Installing and using Houserules](../../docs/guide.md).
+Step by step setup: [Installing and using Houserules](https://github.com/gordienko-andrei/houserules/blob/main/docs/guide.md).
 
 ## Commands
 
