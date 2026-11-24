@@ -6,6 +6,8 @@ import { createFixtureProject, SAMPLE_PROJECT } from '../testing/fixture-project
 import { checkRoleTarget, checkUsageCallsTarget, checkUsageSyntax } from './role-checks';
 import { validateProject } from './validate-project';
 
+const LINT_IMPORT_TIMEOUT_MS = 30_000;
+
 function role(input: Record<string, string>): RoleMapping {
   const mapping = parseConfig({ roles: { status: input } }).roles['status'];
   if (mapping === undefined) {
@@ -146,5 +148,5 @@ describe('validateProject', () => {
       'skipped rule houserules/prefer-role-component is off.',
       'skipped rule houserules/restricted-template-syntax is off.',
     ]);
-  });
+  }, LINT_IMPORT_TIMEOUT_MS);
 });
