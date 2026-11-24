@@ -7,6 +7,7 @@ export {
   type LoadedConfig,
 } from './config/load-config';
 export { resolveRules, type ResolvedRule } from './config/resolve-rules';
+export { RULE_METADATA } from './config/rule-metadata';
 export { BUILT_IN_ROLES, findBuiltInRole, isBuiltInRole, type RoleDefinition } from './config/roles';
 export {
   RULE_NAMES,

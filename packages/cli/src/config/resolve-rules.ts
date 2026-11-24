@@ -1,4 +1,5 @@
 import type { HouserulesConfig, RoleMapping, RuleName, RuleSeverity } from './schema';
+import { RULE_METADATA } from './rule-metadata';
 
 export interface ResolvedRule {
   readonly name: RuleName;
@@ -6,8 +7,6 @@ export interface ResolvedRule {
   readonly options?: Readonly<Record<string, unknown>>;
   readonly ignoredFiles: readonly string[];
 }
-
-const DEFAULT_SEVERITY = 'error';
 
 function toFileList(files: RoleMapping['files']): readonly string[] {
   if (files === undefined) {
@@ -54,7 +53,10 @@ function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'
 
 export function resolveRules(config: HouserulesConfig): ResolvedRule[] {
   return candidateRules(config).flatMap((rule) => {
-    const severity = config.rules[rule.name] ?? DEFAULT_SEVERITY;
+    const metadata = RULE_METADATA[rule.name];
+    if (metadata.role !== undefined && config.roles[metadata.role] === undefined) return [];
+    const defaultSeverity = config.preset === 'recommended' ? metadata.recommended : metadata.strict;
+    const severity = config.rules[rule.name] ?? defaultSeverity;
     return severity === 'off' ? [] : [{ ...rule, severity }];
   });
 }

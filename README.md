@@ -11,7 +11,7 @@ and stylelint, roll out on an existing project, set up CI.
 
 | Package | Description |
 | --- | --- |
-| [`houserules`](packages/cli) | Config, CLI (`init`, `scan`, `validate`, `generate`) and agent context |
+| [`houserules`](packages/cli) | Config, CLI (`init`, `scan`, `validate`, `generate`, `context`) and agent context |
 | [`eslint-plugin-houserules`](packages/eslint-plugin) | ESLint rules for Angular templates and `configs.recommended()` |
 
 ## Development

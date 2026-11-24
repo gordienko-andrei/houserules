@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from 'citty';
-import { loadConfig } from './config/load-config';
+import { findConfigFile, loadConfig } from './config/load-config';
 import { formatInitResult, initProject } from './commands/init';
 import { generateFiles } from './generate/generate-files';
+import { renderContext } from './generate/agents-section';
+import { findBuiltInRole } from './config/roles';
 import { formatScanReport } from './scan/format-report';
 import { findMoneyCandidates } from './scan/money-candidates';
 import { scanProject } from './scan/scan-project';
@@ -11,14 +13,6 @@ import { formatChecks, hasErrors, validateProject } from './validate/validate-pr
 const cwdArgument = {
   cwd: { type: 'string', description: 'Project root', default: process.cwd() },
 } as const;
-
-function currencyWordsOf(root: string): readonly string[] {
-  try {
-    return loadConfig(root).config.currencyWords;
-  } catch {
-    return [];
-  }
-}
 
 const init = defineCommand({
   meta: { name: 'init', description: 'Create houserules.config.ts, the AGENTS.md section and the skills' },
@@ -47,9 +41,43 @@ const scan = defineCommand({
   meta: { name: 'scan', description: 'Collect facts about components, pipes and money in templates' },
   args: { ...cwdArgument, json: { type: 'boolean', description: 'Print JSON for an AI agent' } },
   run({ args }) {
-    const report = scanProject(args.cwd, currencyWordsOf(args.cwd));
+    const config = findConfigFile(args.cwd) === undefined ? undefined : loadConfig(args.cwd).config;
+    const report = scanProject(args.cwd, config?.currencyWords, { roots: config?.scan?.roots });
     const output = args.json === true ? JSON.stringify({ ...report, moneyCandidates: findMoneyCandidates(report) }, null, 2) : formatScanReport(report);
     console.info(output);
+  },
+});
+
+const context = defineCommand({
+  meta: { name: 'context', description: 'List mapped roles or load context for selected roles' },
+  args: {
+    ...cwdArgument,
+    list: { type: 'boolean', description: 'List mapped roles and descriptions' },
+    roles: { type: 'string', description: 'Comma-separated mapped role names' },
+    guidance: { type: 'boolean', description: 'Show project guidance without selecting roles' },
+    project: { type: 'boolean', description: 'Include domain glossary and reference files' },
+  },
+  run({ args }) {
+    const { config } = loadConfig(args.cwd);
+    if (args.list === true) {
+      const entries = Object.entries(config.roles);
+      console.info(entries.length === 0 ? 'No roles are mapped. Use --guidance for project guidance.' : entries.map(([name, role]) => `- ${name}: ${role.description ?? findBuiltInRole(name)?.description ?? ''}`).join('\n'));
+      return;
+    }
+    const names = [...new Set((args.roles ?? '').split(',').map((name) => name.trim()).filter(Boolean))];
+    if (names.length === 0 && args.guidance !== true && args.project !== true) {
+      console.error('Select roles with --roles or use --list or --guidance.');
+      process.exitCode = 1;
+      return;
+    }
+    const unknown = names.filter((name) => config.roles[name] === undefined);
+    if (unknown.length > 0) {
+      console.error(`No mapping for: ${unknown.join(', ')}. Run houserules context --list.`);
+      process.exitCode = 1;
+      return;
+    }
+    const roles = Object.fromEntries(names.map((name) => [name, config.roles[name]!]));
+    console.info(renderContext(config, roles, args.project === true));
   },
 });
 
@@ -67,7 +95,7 @@ const validate = defineCommand({
 
 const main = defineCommand({
   meta: { name: 'houserules', description: 'Your design system, enforced for AI agents' },
-  subCommands: { init, generate, scan, validate },
+  subCommands: { init, generate, scan, validate, context },
 });
 
 void runMain(main);

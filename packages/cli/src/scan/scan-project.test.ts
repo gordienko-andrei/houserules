@@ -46,4 +46,34 @@ describe('scanProject', () => {
     expect(text).toContain('2× <app-money [value]="order.total" />  src/app/orders/orders.html:1');
     expect(text).toContain('<p>{{ order.tax }} ₽</p>  src/app/orders/orders.html:5');
   });
+
+  it('discovers workspace source roots and reports incomplete scans and ambiguous declarations', () => {
+    const workspace = createFixtureProject({
+      'angular.json': JSON.stringify({ projects: { custom: { sourceRoot: 'custom/source' } } }),
+      'package.json': JSON.stringify({ dependencies: { '@vendor/ui': '1.0.0' } }),
+      'src/app.html': '<p>app</p>',
+      'custom/source/a.ts': "@Component({ selector: 'ui-widget' }) class First {}",
+      'custom/source/b.ts': "@Component({ selector: 'ui-widget' }) class Second {}",
+    });
+    try {
+      const scan = scanProject(workspace.root);
+      expect(scan.roots).toContain('custom/source');
+      expect(scan.missingDependencies).toContain('@vendor/ui');
+      expect(scan.components.find((component) => component.selector === 'ui-widget')?.declarations).toHaveLength(2);
+      expect(() => scanProject(workspace.root, [], { roots: ['missing'] })).toThrow('Scan root is not a directory');
+    } finally {
+      workspace.remove();
+    }
+  });
+
+  it('counts repeated components and keeps accurate line numbers', () => {
+    const repeated = createFixtureProject({ 'src/app.html': '<ui-money />\n'.repeat(10000) });
+    try {
+      const component = scanProject(repeated.root).components.find((item) => item.selector === 'ui-money');
+      expect(component?.usage.count).toBe(10000);
+      expect(component?.usage.shapes[0]?.example.line).toBe(1);
+    } finally {
+      repeated.remove();
+    }
+  });
 });

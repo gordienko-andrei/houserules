@@ -1,6 +1,6 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
 import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '../text/currency-text';
-import { lineAt, lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
+import { lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
 
 export interface TemplateSource {
   readonly file: string;
@@ -38,6 +38,26 @@ interface Offsets {
 }
 
 const MAX_EXAMPLE_LENGTH = 200;
+const lineStarts = new WeakMap<TemplateSource, number[]>();
+
+function lineNumberAt(source: TemplateSource, offset: number): number {
+  let starts = lineStarts.get(source);
+  if (starts === undefined) {
+    starts = [0];
+    for (let i = 0; i < source.text.length; i++) {
+      if (source.text[i] === '\n') starts.push(i + 1);
+    }
+    lineStarts.set(source, starts);
+  }
+  let low = 0;
+  let high = starts.length;
+  while (low + 1 < high) {
+    const middle = Math.floor((low + high) / 2);
+    if ((starts[middle] ?? 0) <= offset) low = middle;
+    else high = middle;
+  }
+  return source.firstLine + low;
+}
 const ANGULAR_BUILT_IN_ELEMENTS = new Set(['ng-container', 'ng-template', 'ng-content']);
 
 function spanOf(node: WalkedNode, key: 'sourceSpan' | 'startSourceSpan'): Offsets | undefined {
@@ -54,7 +74,7 @@ function namesOf(node: WalkedNode, key: 'attributes' | 'inputs' | 'outputs'): st
 
 function exampleAt(source: TemplateSource, offsets: Offsets, text?: string): UsageExample {
   const shown = (text ?? lineTextAt(source.text, offsets.start)).replace(/\s+/g, ' ').slice(0, MAX_EXAMPLE_LENGTH);
-  return { file: source.file, line: source.firstLine + lineAt(source.text, offsets.start) - 1, text: shown };
+  return { file: source.file, line: lineNumberAt(source, offsets.start), text: shown };
 }
 
 function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | undefined {

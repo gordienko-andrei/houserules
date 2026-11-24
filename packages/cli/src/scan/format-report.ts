@@ -17,7 +17,8 @@ function componentLines(component: ComponentFacts): string[] {
 }
 
 export function formatScanReport(report: ScanReport): string {
-  const lines = [`Houserules scan: ${report.templateCount} templates`, ''];
+  const lines = [`Houserules scan: ${report.templateCount} templates`, `Roots: ${(report.roots ?? ['.']).join(', ')}`, ''];
+  if ((report.missingDependencies?.length ?? 0) > 0) lines.push(`Missing dependencies: ${report.missingDependencies?.join(', ')}`, '');
   const ways = describeMoneyWays(report);
   lines.push(ways.length === 0 ? 'Money: nothing found.' : `Money is shown in ${ways.length} ways:`);
   lines.push(...ways.map((way) => `  - ${way}`));

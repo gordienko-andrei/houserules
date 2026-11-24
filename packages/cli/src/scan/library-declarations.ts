@@ -4,8 +4,9 @@ import { elementNamesOf } from './declarations';
 import { listFiles } from './project-files';
 
 export interface LibraryDeclarations {
-  readonly elements: ReadonlyMap<string, string>;
-  readonly pipes: ReadonlyMap<string, string>;
+  readonly elements: ReadonlyMap<string, readonly string[]>;
+  readonly pipes: ReadonlyMap<string, readonly string[]>;
+  readonly missing: readonly string[];
 }
 
 const COMPONENT_DECLARATION = /ɵɵComponentDeclaration<[^,]+,\s*"([^"]+)"/g;
@@ -33,18 +34,20 @@ export function parseLibraryTypings(text: string): { elements: string[]; pipes: 
 }
 
 export function collectLibraryDeclarations(root: string): LibraryDeclarations {
-  const elements = new Map<string, string>();
-  const pipes = new Map<string, string>();
+  const elements = new Map<string, string[]>();
+  const pipes = new Map<string, string[]>();
+  const missing: string[] = [];
   for (const library of dependencyNames(root)) {
     const directory = join(root, 'node_modules', library);
     if (!existsSync(directory)) {
+      missing.push(library);
       continue;
     }
     for (const file of listFiles(directory, (path) => path.endsWith('.d.ts'))) {
       const found = parseLibraryTypings(readFileSync(file, 'utf8'));
-      found.elements.forEach((element) => elements.set(element, library));
-      found.pipes.forEach((pipe) => pipes.set(pipe, library));
+      found.elements.forEach((element) => elements.set(element, [...new Set([...(elements.get(element) ?? []), library])]));
+      found.pipes.forEach((pipe) => pipes.set(pipe, [...new Set([...(pipes.get(pipe) ?? []), library])]));
     }
   }
-  return { elements, pipes };
+  return { elements, pipes, missing };
 }

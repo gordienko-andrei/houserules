@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { Linter } from 'eslint';
 import { afterEach, describe, expect, it } from 'vitest';
 import houserules from '../index';
+import { RULE_METADATA } from 'houserules';
 
 const MONEY_ROLE = {
   component: 'ui-money',
@@ -18,6 +19,9 @@ function lint(code: string, configs: Linter.Config[], fileName = 'src/app/order.
 }
 
 describe('configs.recommended', () => {
+  it('has shared metadata for every exported rule', () => {
+    expect(Object.keys(RULE_METADATA).sort()).toEqual(Object.keys(houserules.rules).sort());
+  });
   const directories: string[] = [];
 
   afterEach(() => {
@@ -50,6 +54,18 @@ describe('configs.recommended', () => {
   it('applies severities from the config', () => {
     const configs = houserules.configs.recommended({ config: { rules: { 'no-px-font-size': 'off' } } });
     expect(lint('<p style="font-size: 12px">a</p>', configs)).toEqual([]);
+  });
+
+  it('applies recommended defaults and explicit overrides', () => {
+    const recommended = houserules.configs.recommended({ config: { preset: 'recommended' } });
+    const template = '<p>{{ a }} • {{ b }}</p>';
+    expect(lint(template, recommended)).toEqual([]);
+    const overridden = houserules.configs.recommended({
+      config: { preset: 'recommended', rules: { 'no-glued-fields': 'warn' } },
+    });
+    const messages = new Linter({ configType: 'flat' }).verify(template, overridden, 'src/app/test.html');
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.severity).toBe(1);
   });
 
   it('loads houserules.config.ts from the given directory', () => {

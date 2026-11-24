@@ -4,7 +4,7 @@
 | --- | --- |
 | Repository | https://github.com/gordienko-andrei/films.git |
 | Commit | `fce553cb259965cb40438518d476a1756d140ded` |
-| Run | 2026-11-06 |
+| Run | 2026-11-23 |
 | Versions | @angular/core ^19.2.9, typescript ~5.5.0 |
 | ESLint config | none |
 | Mapped roles | none |
@@ -13,7 +13,7 @@
 
 - `.html` templates linted with ESLint: 12 in 0.1 s
 - Templates seen by `scan` (`.html` and inline): 12
-- Stylesheets linted with stylelint: 12 in 0.3 s
+- Stylesheets linted with stylelint: 12 in 0.2 s
 - Findings: 2, parse errors: 0, crashes: 0
 
 | Rule | Message | Count | Example |
@@ -41,6 +41,9 @@ Mark each finding in the Verdict column: `ok` (a real problem), `false` (a false
 
 ```text
 Houserules scan: 12 templates
+Roots: src, src
+
+Missing dependencies: @angular/animations, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/platform-browser, @angular/platform-browser-dynamic, @angular/platform-server, @angular/router, @angular/ssr, @primeng/themes, express, primeflex, primeicons, primeng, @angular-devkit/build-angular, @angular/cli, @angular/compiler-cli, browser-sync
 
 Money: nothing found.
 
