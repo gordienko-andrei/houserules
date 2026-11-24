@@ -78,6 +78,7 @@ By default scan searches existing `src`, `apps`, `libs` and `projects` directori
 | `CLAUDE.md` | An `@AGENTS.md` import, so Claude Code reads `AGENTS.md`. Added only if missing. |
 | `.claude/skills/houserules-setup/SKILL.md` | How an agent sets up Houserules. |
 | `.claude/skills/houserules-plan/SKILL.md` | How an agent plans a screen before writing a template. |
+| `.claude/skills/houserules-learn/SKILL.md` | How an agent turns your corrections of its markup into config. |
 
 Commit all of them: they are the context your agents get.
 
@@ -145,12 +146,52 @@ export default defineConfig({
 ```
 
 - `component` or `pipe`: exactly one of them. For a pipe, for example
-  `{ pipe: 'tuiAmount', usage: '{{ $value | tuiAmount: "RUB" }}' }`.
+  `{ pipe: 'tuiAmount', usage: '{{ $value | tuiAmount: "RUB" }}' }`. `component` is a selector: a custom element
+  (`app-money`) or a directive on an element (`button[mat-flat-button]`, `button[pButton]`, `a[tuiButton]`).
+  `validate` finds directives declared in the project (`@Directive`, `@Component`) and in installed libraries.
 - `usage`: the exact call agents should copy, with `$value` in place of the shown expression. Take it from the most
   common real call in `scan`. Keep only what is the same for every value: do not hard-code `currency="RUB"` if
   amounts come in several currencies.
 - `files`: the folder of the component itself. Its own template may format money, so the money rule is off there.
 - `currencyWords`: currency codes or words your templates write as text (`руб.`, `USD`).
+- `replaces`: native elements the role component is used instead of, for example
+  `{ component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])' }`. The
+  [`prefer-role-component`](../packages/eslint-plugin/docs/rules/prefer-role-component.md) rule then reports such
+  elements everywhere except the role `files`. Elements that already carry a directive (`<button matChipRemove>`) are
+  skipped, so `replaces: 'button'` is usually enough.
+
+### Project restrictions
+
+A ban that is not about a role goes to `restrictions`, with examples that `validate` checks:
+
+```ts
+restrictions: [
+  {
+    selector: 'BindingPipe[name="date"]',
+    message: 'Show dates with <app-date [value]="…" />.',
+    bad: '<p>{{ order.createdAt | date: "dd.MM" }}</p>',
+    good: '<app-date [value]="order.createdAt" />',
+  },
+],
+```
+
+The rule of thumb: "use the role component instead of this native element" is `replaces`, everything else is a
+restriction. See [`restricted-template-syntax`](../packages/eslint-plugin/docs/rules/restricted-template-syntax.md).
+
+A role can describe a pattern as well as a value. A custom role with a `description` and a full `usage` carries the
+inputs your team always sets, for example a data table with gridlines and striped rows. Agents copy the `usage`
+from `houserules context`.
+
+### Learn from corrections
+
+After you have corrected a screen an agent built, ask:
+
+> Learn Houserules conventions from my corrections between `<agent commit>` and `<my commit>`.
+
+The `houserules-learn` skill sorts each correction into a config change, a code-review matter (data, logic), a
+style matter (tokens, stylelint) or a one-screen decision. It proposes config only for conventions with evidence
+elsewhere in the project or your explicit confirmation, then lints the agent's version to show which mistakes the
+new config now catches.
 
 All fields are described in the [`houserules` README](../packages/cli/README.md#config).
 

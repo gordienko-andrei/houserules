@@ -1,4 +1,5 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
+import { describeElementSelector, elementFactsOf, matchesElementSelector, parseElementSelector } from '../config/element-selector';
 import type { RoleMapping } from '../config/schema';
 import type { ScanReport } from '../scan/scan-project';
 import { walkTemplate } from '../scan/template-walk';
@@ -18,17 +19,18 @@ export function fillUsage(usage: string, expression: string = SAMPLE_EXPRESSION)
 
 export function checkRoleTarget(roleName: string, role: RoleMapping, scan: ScanReport): Check {
   if (role.component !== undefined) {
-    const facts = scan.components.find((component) => component.selector === role.component);
+    const target = parseElementSelector(role.component)?.source ?? role.component;
+    const facts = scan.components.find((component) => component.selector === target);
     if (facts === undefined || (facts.source === 'unknown' && facts.usage.count === 0)) {
       if ((scan.missingDependencies?.length ?? 0) > 0 || scan.parseErrors.length > 0) {
-        return { status: 'warning', message: `${roleName}: <${role.component}> could not be confirmed; scan is incomplete (missing dependencies or template parse errors).` };
+        return { status: 'warning', message: `${roleName}: ${describeElementSelector(role.component)} could not be confirmed; scan is incomplete (missing dependencies or template parse errors).` };
       }
-      return { status: 'error', message: `${roleName}: <${role.component}> is not declared in the project or its libraries and is never used. Scanned roots: ${(scan.roots ?? ['.']).join(', ')}.` };
+      return { status: 'error', message: `${roleName}: ${describeElementSelector(role.component)} is not declared in the project or its libraries and is never used. Scanned roots: ${(scan.roots ?? ['.']).join(', ')}.` };
     }
-    if ((facts.declarations?.length ?? 0) > 1) return { status: 'warning', message: `${roleName}: <${role.component}> has multiple declarations: ${facts.declarations?.join(', ')}.` };
+    if ((facts.declarations?.length ?? 0) > 1) return { status: 'warning', message: `${roleName}: ${describeElementSelector(role.component)} has multiple declarations: ${facts.declarations?.join(', ')}.` };
     const origin = facts.source === 'unknown' ? 'declaration not found' : `${facts.source}${facts.declaredIn === undefined ? '' : `, ${facts.declaredIn}`}`;
     const deprecated = facts.isDeprecated ? ' It is marked @deprecated.' : '';
-    return { status: facts.isDeprecated || facts.source === 'unknown' ? 'warning' : 'ok', message: `${roleName}: <${role.component}> found (${origin}), ${facts.usage.count} uses.${deprecated}` };
+    return { status: facts.isDeprecated || facts.source === 'unknown' ? 'warning' : 'ok', message: `${roleName}: ${describeElementSelector(role.component)} found (${origin}), ${facts.usage.count} uses.${deprecated}` };
   }
   const facts = scan.pipes.find((pipe) => pipe.name === role.pipe);
   if (facts === undefined || (facts.source === 'unknown' && facts.count === 0)) {
@@ -61,16 +63,17 @@ export function checkUsageCallsTarget(roleName: string, role: RoleMapping): Chec
 }
 
 function checkTargetNodes(roleName: string, role: RoleMapping, nodes: unknown): Check {
+  const selector = role.component === undefined ? undefined : parseElementSelector(role.component);
   let callsTarget = false;
   walkTemplate(nodes, (node) => {
-    if (role.component !== undefined && node.type === 'Element' && node['name'] === role.component) callsTarget = true;
+    if (selector !== undefined && node.type === 'Element' && matchesElementSelector(selector, elementFactsOf(node))) callsTarget = true;
     if (role.pipe !== undefined && node.type === 'BindingPipe' && node['name'] === role.pipe) callsTarget = true;
   });
   return targetResult(roleName, role, callsTarget);
 }
 
 function targetResult(roleName: string, role: RoleMapping, callsTarget: boolean): Check {
-  const target = role.component === undefined ? `the \`${role.pipe ?? ''}\` pipe` : `<${role.component}>`;
+  const target = role.component === undefined ? `the \`${role.pipe ?? ''}\` pipe` : describeElementSelector(role.component);
   return callsTarget
     ? { status: 'ok', message: `${roleName}: usage calls ${target}.` }
     : { status: 'error', message: `${roleName}: usage does not call ${target}.` };

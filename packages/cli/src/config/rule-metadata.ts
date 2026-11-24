@@ -24,4 +24,12 @@ export const RULE_METADATA: Readonly<Record<RuleName, RuleMetadata>> = {
     recommended: 'error', strict: 'error',
     summary: 'reports fixed px font sizes in template styles',
   },
+  'prefer-role-component': {
+    recommended: 'warn', strict: 'error',
+    summary: 'reports native elements listed in `replaces` of a role; use the role component instead',
+  },
+  'restricted-template-syntax': {
+    recommended: 'error', strict: 'error',
+    summary: 'reports template nodes matched by the project `restrictions`; each message says what to use instead',
+  },
 };

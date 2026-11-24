@@ -6,5 +6,5 @@
   <p>Доставка: <ui-money [value]="order.deliveryPrice" currency="RUB" /></p>
   <p>Курс: <ui-money [value]="order.totalUsd" currency="USD" /></p>
   <p>Остаток долга: <ui-money [value]="order.debt" currency="RUB" /></p>
-  <button type="button">Оплатить <ui-money [value]="order.total" currency="RUB" /></button>
+  <ui-button (pressed)="pay()">Оплатить <ui-money [value]="order.total" currency="RUB" /></ui-button>
 </section>

@@ -61,4 +61,39 @@ describe('CLI and ESLint workflow', () => {
       rmSync(root, { recursive: true, force: true });
     }
   }, 30000);
+
+  it('validates replaces and restrictions against their examples', () => {
+    const root = mkdtempSync(resolve('../../playground/.workflow-'));
+    const cli = resolve('../cli/dist/cli.mjs');
+    const run = (...args: string[]) => spawnSync(process.execPath, [cli, ...args, '--cwd', root], { encoding: 'utf8' });
+    const restriction = (bad: string) => ({
+      selector: 'BindingPipe[name="date"]',
+      message: 'Show dates with <ui-date [value]="…" />.',
+      bad,
+      good: '<ui-date [value]="order.createdAt" />',
+    });
+    const config = (bad: string) =>
+      `export default ${JSON.stringify({
+        roles: { action: { component: 'ui-button', usage: '<ui-button>{{ $value }}</ui-button>', replaces: 'button' } },
+        restrictions: [restriction(bad)],
+      })};`;
+    try {
+      writeFileSync(join(root, 'package.json'), '{}');
+      writeFileSync(join(root, 'button.ts'), "@Component({selector: 'ui-button'}) class Button {}");
+      writeFileSync(join(root, 'screen.html'), '<button type="button">Retry</button><button matChipRemove>x</button><ui-button>Go</ui-button>');
+      writeFileSync(join(root, 'houserules.config.mjs'), config('{{ order.createdAt | date }}'));
+      const valid = run('validate');
+      expect(valid.status).toBe(0);
+      expect(valid.stdout).toContain('action: replaces `button`: 1 native element(s) to replace (screen.html:1); 1 skipped because they carry a directive: matChipRemove 1.');
+      expect(valid.stdout).toContain('action: `<button></button>` is reported as a native element to replace.');
+      expect(valid.stdout).toContain('restriction 1 (`BindingPipe[name="date"]`): the bad example is reported.');
+      expect(valid.stdout).toContain('restriction 1 (`BindingPipe[name="date"]`): the good example passes Houserules rules.');
+      writeFileSync(join(root, 'houserules.config.mjs'), config('{{ order.createdAt | number }}'));
+      const invalid = run('validate');
+      expect(invalid.status).toBe(1);
+      expect(invalid.stdout).toContain('the bad example is not reported');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 30000);
 });

@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import type { TemplateSource } from './template-facts';
 
+// Directives are kept here too: a role may target an attribute directive such as `button[pButton]`.
 export interface ComponentDeclaration {
   readonly selector: string;
   readonly elementNames: readonly string[];
@@ -83,8 +84,9 @@ export function collectDeclarations(file: string, text: string): FileDeclaration
     if (ts.isClassDeclaration(node) && node.name !== undefined) {
       const className = node.name.text;
       const component = decoratorCall(node, 'Component');
-      const selector = component === undefined ? undefined : stringProperty(component, 'selector')?.text;
-      if (component !== undefined && selector !== undefined) {
+      const declaration = component ?? decoratorCall(node, 'Directive');
+      const selector = declaration === undefined ? undefined : stringProperty(declaration, 'selector')?.text;
+      if (declaration !== undefined && selector !== undefined) {
         const inputs = node.members.filter(isInputMember).map((member) => member.name?.getText() ?? '');
         components.push({ selector, elementNames: elementNamesOf(selector), className, file, inputs, isDeprecated: isDeprecated(node) });
       }

@@ -12,6 +12,8 @@ Step by step setup: [Installing and using Houserules](../../docs/guide.md).
 | [`no-glued-fields`](docs/rules/no-glued-fields.md) | Disallow gluing separate values into one text with separators or arrows | no |
 | [`require-async-states`](docs/rules/require-async-states.md) | Require loading, error and empty states where async data is shown | no |
 | [`no-px-font-size`](docs/rules/no-px-font-size.md) | Disallow font sizes in fixed `px` in Angular templates | no |
+| [`prefer-role-component`](docs/rules/prefer-role-component.md) | Require the role component instead of the native elements it replaces | any role with `replaces` |
+| [`restricted-template-syntax`](docs/rules/restricted-template-syntax.md) | Disallow template syntax listed in the project restrictions | no, needs `restrictions` |
 
 A rule that needs a role is on only when `houserules.config.ts` maps that role to a component or a pipe.
 Requiring a component the project does not have would push an agent to invent one or to work around the check.

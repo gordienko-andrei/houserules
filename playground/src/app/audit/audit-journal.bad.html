@@ -1,0 +1,23 @@
+<section class="audit">
+  <h2>Журнал изменений</h2>
+  @if (events.isLoading()) {
+    <p>Загрузка…</p>
+  } @else if (events.error()) {
+    <p role="alert">Не удалось загрузить журнал</p>
+    <button type="button" (click)="events.reload()">Повторить</button>
+  } @else {
+    @for (event of events.value(); track event.id) {
+      <article>
+        <strong>
+          {{ event.title }}
+          @if (event.context) {
+            · {{ event.context }}
+          }
+        </strong>
+        <p [innerHTML]="event.message"></p>
+      </article>
+    } @empty {
+      <p>Событий пока нет</p>
+    }
+  }
+</section>

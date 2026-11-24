@@ -1,9 +1,10 @@
 import { loadConfig, type LoadedConfig } from '../config/load-config';
 import { resolveRules } from '../config/resolve-rules';
-import { RULE_NAMES } from '../config/schema';
-import { scanProject } from '../scan/scan-project';
+import { RULE_NAMES, type HouserulesConfig } from '../config/schema';
+import { scanProject, type ScanReport } from '../scan/scan-project';
+import { checkReplacementExample, checkReplacementScan, checkRestriction } from './example-checks';
 import { checkRoleTarget, checkUsage, type Check } from './role-checks';
-import { prepareRoleUsageLint } from './self-lint';
+import { lintUsageCheck, prepareTemplateLint, type PreparedLint } from './self-lint';
 
 function loadOrReport(root: string): LoadedConfig | Check {
   try {
@@ -22,39 +23,63 @@ function ruleChecks(loaded: LoadedConfig): Check[] {
   );
 }
 
-export async function validateProject(root: string): Promise<Check[]> {
-  const loaded = loadOrReport(root);
-  if ('status' in loaded) {
-    return [loaded];
-  }
-  const checks: Check[] = [{ status: 'ok', message: `config ${loaded.path} is valid.` }];
-  const roles = Object.values(loaded.config.roles);
-  let scan;
-  try {
-    scan = scanProject(root, loaded.config.currencyWords, {
-      roots: loaded.config.scan?.roots,
-      components: roles.flatMap((role) => role.component === undefined ? [] : [role.component]),
-      pipes: roles.flatMap((role) => role.pipe === undefined ? [] : [role.pipe]),
-    });
-  } catch (error) {
-    return [...checks, { status: 'error', message: error instanceof Error ? error.message : String(error) }];
-  }
+function asList(value: string | readonly string[] | undefined): readonly string[] {
+  if (value === undefined) return [];
+  return typeof value === 'string' ? [value] : value;
+}
+
+function scanChecks(scan: ScanReport): Check[] {
+  const checks: Check[] = [];
   if (scan.parseErrors.length > 0) {
     checks.push({ status: 'warning', message: `scan could not parse ${scan.parseErrors.length} template(s): ${scan.parseErrors.map((error) => error.file).join(', ')}.` });
   }
   if ((scan.missingDependencies?.length ?? 0) > 0) {
     checks.push({ status: 'warning', message: `scan skipped missing dependencies: ${scan.missingDependencies?.join(', ')}.` });
   }
-  const lintUsage = roles.length > 0 ? await prepareRoleUsageLint(root, loaded.config) : undefined;
-  for (const [name, role] of Object.entries(loaded.config.roles)) {
-    checks.push(checkRoleTarget(name, role, scan));
+  return checks;
+}
+
+function roleChecks(config: HouserulesConfig, scan: ScanReport, lint: PreparedLint | undefined): Check[] {
+  return Object.entries(config.roles).flatMap(([name, role]) => {
     const usageChecks = checkUsage(name, role);
-    checks.push(...usageChecks);
-    if (usageChecks[0]?.status === 'ok') {
-      if (lintUsage !== undefined) checks.push(lintUsage(name, role.usage));
-    }
+    const lintCheck = usageChecks[0]?.status === 'ok' && lint !== undefined ? [lintUsageCheck(lint, name, role.usage)] : [];
+    const replaces = asList(role.replaces).flatMap((selector) => {
+      const summary = scan.replacements?.find((item) => item.selector === selector);
+      const example = lint === undefined ? [] : [checkReplacementExample(lint, name, selector)];
+      return [...(summary === undefined ? [] : [checkReplacementScan(name, summary)]), ...example];
+    });
+    return [checkRoleTarget(name, role, scan), ...usageChecks, ...lintCheck, ...replaces];
+  });
+}
+
+export async function validateProject(root: string): Promise<Check[]> {
+  const loaded = loadOrReport(root);
+  if ('status' in loaded) {
+    return [loaded];
   }
-  return [...checks, ...ruleChecks(loaded)];
+  const config = loaded.config;
+  const checks: Check[] = [{ status: 'ok', message: `config ${loaded.path} is valid.` }];
+  const roles = Object.values(config.roles);
+  let scan: ScanReport;
+  try {
+    scan = scanProject(root, config.currencyWords, {
+      roots: config.scan?.roots,
+      components: roles.flatMap((role) => (role.component === undefined ? [] : [role.component])),
+      pipes: roles.flatMap((role) => (role.pipe === undefined ? [] : [role.pipe])),
+      replaces: roles.flatMap((role) => asList(role.replaces).map((selector) => ({ selector, ignoredFiles: asList(role.files) }))),
+    });
+  } catch (error) {
+    return [...checks, { status: 'error', message: error instanceof Error ? error.message : String(error) }];
+  }
+  const needsLint = roles.length > 0 || config.restrictions.length > 0;
+  const lint = needsLint ? await prepareTemplateLint(root, config) : undefined;
+  return [
+    ...checks,
+    ...scanChecks(scan),
+    ...roleChecks(config, scan, lint),
+    ...(lint === undefined ? [] : config.restrictions.flatMap((restriction, index) => checkRestriction(lint, index, restriction))),
+    ...ruleChecks(loaded),
+  ];
 }
 
 const STATUS_MARKS: Readonly<Record<Check['status'], string>> = {

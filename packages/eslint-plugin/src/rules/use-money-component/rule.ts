@@ -7,7 +7,7 @@ import {
   type ExpressionNode,
   type InterpolationNode,
 } from '../../utils/template-ast';
-import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from 'houserules';
+import { describeElementSelector, findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from 'houserules';
 import { normalizeExpression, renderUsage } from './usage';
 
 export const RULE_NAME = 'use-money-component';
@@ -33,7 +33,7 @@ const GENERIC_TARGET = "the project's money component";
 
 function describeTarget({ component, pipe }: UseMoneyComponentOptions): string {
   if (component !== undefined) {
-    return `<${component}>`;
+    return describeElementSelector(component);
   }
   if (pipe !== undefined) {
     return `the \`${pipe}\` pipe`;

@@ -1,4 +1,6 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
+import { elementFactsOf, matchesElementSelector, type ElementSelector } from '../config/element-selector';
+import { directiveAttributesOf } from '../config/html-attributes';
 import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '../text/currency-text';
 import { lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
 
@@ -25,8 +27,21 @@ export interface PipeUsage {
   readonly example: UsageExample;
 }
 
+export interface ReplacedElement {
+  readonly selector: string;
+  readonly directives: readonly string[];
+  readonly example: UsageExample;
+}
+
+export interface TemplateTargets {
+  readonly elements?: readonly ElementSelector[];
+  readonly replaced?: readonly ElementSelector[];
+}
+
 export interface TemplateFacts {
   readonly elements: readonly ElementUsage[];
+  readonly targetElements: readonly ElementUsage[];
+  readonly replacedElements: readonly ReplacedElement[];
   readonly pipes: readonly PipeUsage[];
   readonly handFormattedMoney: readonly UsageExample[];
   readonly parseError?: string;
@@ -77,18 +92,38 @@ function exampleAt(source: TemplateSource, offsets: Offsets, text?: string): Usa
   return { file: source.file, line: lineNumberAt(source, offsets.start), text: shown };
 }
 
+function usageAs(selector: string, source: TemplateSource, node: WalkedNode, offsets: Offsets): ElementUsage {
+  const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
+  return {
+    selector,
+    attributeNames: [...new Set(attributeNames)].sort(),
+    example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
+  };
+}
+
 function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | undefined {
   const name = String(node['name']);
   const offsets = spanOf(node, 'startSourceSpan');
   if (!name.includes('-') || ANGULAR_BUILT_IN_ELEMENTS.has(name) || offsets === undefined) {
     return undefined;
   }
-  const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
-  return {
-    selector: name,
-    attributeNames: [...new Set(attributeNames)].sort(),
-    example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
-  };
+  return usageAs(name, source, node, offsets);
+}
+
+function targetUsages(source: TemplateSource, node: WalkedNode, targets: readonly ElementSelector[]): ElementUsage[] {
+  const offsets = spanOf(node, 'startSourceSpan');
+  if (targets.length === 0 || offsets === undefined) return [];
+  const facts = elementFactsOf(node);
+  return targets.filter((target) => matchesElementSelector(target, facts)).map((target) => usageAs(target.source, source, node, offsets));
+}
+
+function replacedElements(source: TemplateSource, node: WalkedNode, selectors: readonly ElementSelector[]): ReplacedElement[] {
+  const offsets = spanOf(node, 'startSourceSpan');
+  if (selectors.length === 0 || offsets === undefined) return [];
+  const facts = elementFactsOf(node);
+  return selectors
+    .filter((selector) => matchesElementSelector(selector, facts))
+    .map((selector) => ({ selector: selector.source, directives: directiveAttributesOf(facts, selector), example: exampleAt(source, offsets) }));
 }
 
 function expressionSpans(node: WalkedNode): (Offsets | undefined)[] {
@@ -107,15 +142,18 @@ function handFormattedMoneyAt(source: TemplateSource, node: WalkedNode, currency
   return spans[Math.min(...indexes)] ?? spanOf(node, 'sourceSpan');
 }
 
-export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[]): TemplateFacts {
+export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[], targets: TemplateTargets = {}): TemplateFacts {
   const elements: ElementUsage[] = [];
+  const targetElements: ElementUsage[] = [];
+  const replaced: ReplacedElement[] = [];
   const pipes: PipeUsage[] = [];
   const handFormattedMoney: UsageExample[] = [];
   let templateNodes: unknown;
   try {
     templateNodes = parseForESLint(source.text, { filePath: source.file }).ast.templateNodes;
   } catch (error) {
-    return { elements, pipes, handFormattedMoney, parseError: error instanceof Error ? error.message : String(error) };
+    const parseError = error instanceof Error ? error.message : String(error);
+    return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney, parseError };
   }
   walkTemplate(templateNodes, (node) => {
     const offsets = spanOf(node, 'sourceSpan');
@@ -124,6 +162,8 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       if (usage !== undefined) {
         elements.push(usage);
       }
+      targetElements.push(...targetUsages(source, node, targets.elements ?? []));
+      replaced.push(...replacedElements(source, node, targets.replaced ?? []));
     } else if (node.type === 'BindingPipe' && offsets !== undefined) {
       pipes.push({ name: String(node['name']), example: exampleAt(source, offsets) });
     } else if (node.type === 'Interpolation') {
@@ -133,5 +173,5 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       }
     }
   });
-  return { elements, pipes, handFormattedMoney };
+  return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney };
 }

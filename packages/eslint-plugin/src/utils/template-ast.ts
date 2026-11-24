@@ -32,10 +32,22 @@ export interface TextNode extends TemplateNode {
   readonly value: string;
 }
 
+export interface ParseLocation {
+  readonly line: number;
+  readonly col: number;
+}
+
+export interface ParseSourceSpan {
+  readonly start: ParseLocation;
+  readonly end: ParseLocation;
+}
+
 export interface ElementNode extends TemplateNode {
   readonly type: 'Element';
   readonly name: string;
   readonly attributes: readonly TextAttributeNode[];
+  readonly inputs?: readonly BoundAttributeNode[];
+  readonly startSourceSpan?: ParseSourceSpan;
 }
 
 export interface TextAttributeNode extends TemplateNode {

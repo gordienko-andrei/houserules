@@ -1,10 +1,18 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import ts from 'typescript';
+import {
+  isCustomElementSelector,
+  parseElementSelector,
+  selectorCovers,
+  splitSelectorList,
+  type ElementSelector,
+} from '../config/element-selector';
 import { collectDeclarations, type ComponentDeclaration, type PipeDeclaration } from './declarations';
 import { collectLibraryDeclarations, type LibraryDeclarations } from './library-declarations';
 import { isSourceFile, isTemplateFile, listFiles } from './project-files';
 import { collectTemplateFacts, type ElementUsage, type PipeUsage, type TemplateSource, type UsageExample } from './template-facts';
+import { summarizeReplacements, type ReplacementSummary, type ReplacementTarget } from './replacement-summary';
 import { moneyTokensOf, summarizeUsages, type UsageSummary } from './usage-summary';
 
 export type DeclarationSource = 'project' | 'library' | 'angular' | 'unknown';
@@ -40,6 +48,7 @@ export interface ScanReport {
   readonly components: readonly ComponentFacts[];
   readonly pipes: readonly PipeFacts[];
   readonly handFormattedMoney: { readonly count: number; readonly examples: readonly UsageExample[] };
+  readonly replacements?: readonly ReplacementSummary[];
 }
 
 const ANGULAR_PIPES = new Set(['async', 'currency', 'date', 'decimal', 'number', 'percent', 'json', 'slice', 'lowercase', 'uppercase', 'titlecase', 'keyvalue', 'i18nPlural', 'i18nSelect']);
@@ -131,8 +140,30 @@ function pipeFacts(collected: Collected, pipes: readonly PipeUsage[], libraries:
   });
 }
 
-export function scanProject(projectRoot: string, currencyWords: readonly string[] = [], options: { roots?: readonly string[]; components?: readonly string[]; pipes?: readonly string[] } = {}): ScanReport {
-  const root = resolve(projectRoot);
+function selectorTargetFacts(collected: Collected, usages: readonly ElementUsage[], libraries: LibraryDeclarations, target: ElementSelector): ComponentFacts {
+  const covers = (selectorList: string): boolean =>
+    splitSelectorList(selectorList).some((part) => {
+      const declared = parseElementSelector(part);
+      return declared !== undefined && selectorCovers(declared, target);
+    });
+  const projectMatches = collected.components.filter((component) => covers(component.selector));
+  const libraryNames = [...new Set([...libraries.attributeSelectors].filter(([selector]) => covers(selector)).flatMap(([, names]) => names))];
+  const declaration = projectMatches[0];
+  const inputs = declaration?.inputs ?? [];
+  return {
+    selector: target.source,
+    source: declaration !== undefined ? 'project' : libraryNames.length > 0 ? 'library' : 'unknown',
+    declaredIn: declaration?.file ?? libraryNames[0],
+    declarations: [...projectMatches.map((match) => match.file), ...libraryNames],
+    inputs,
+    isDeprecated: declaration?.isDeprecated ?? false,
+    usage: summarizeUsages(usages.filter((usage) => usage.selector === target.source)),
+    moneyHints: [target.source, declaration?.className ?? '', ...inputs].flatMap(moneyTokensOf),
+  };
+}
+
+function scanRoots(root: string, explicitRoots: readonly string[] | undefined): readonly string[] {
+  if (explicitRoots !== undefined) return explicitRoots;
   const known = ['src', 'apps', 'libs', 'projects'].filter((name) => existsSync(join(root, name)));
   const angularPath = join(root, 'angular.json');
   if (existsSync(angularPath)) {
@@ -143,15 +174,37 @@ export function scanProject(projectRoot: string, currencyWords: readonly string[
       if (typeof project.sourceRoot === 'string' && existsSync(resolve(root, project.sourceRoot))) known.push(project.sourceRoot);
     }
   }
-  const roots = options.roots ?? (known.length > 0 ? known : ['.']);
+  return known.length > 0 ? known : ['.'];
+}
+
+export interface ScanOptions {
+  readonly roots?: readonly string[];
+  readonly components?: readonly string[];
+  readonly pipes?: readonly string[];
+  readonly replaces?: readonly ReplacementTarget[];
+}
+
+export function scanProject(projectRoot: string, currencyWords: readonly string[] = [], options: ScanOptions = {}): ScanReport {
+  const root = resolve(projectRoot);
+  const roots = scanRoots(root, options.roots);
   const directories = roots.map((name) => {
     const directory = resolve(root, name);
     if (!existsSync(directory) || !statSync(directory).isDirectory()) throw new Error(`Scan root is not a directory: ${directory}`);
     return directory;
   });
+  const targets = (options.components ?? []).flatMap((component) => parseElementSelector(component) ?? []);
+  const selectorTargets = targets.filter((target) => !isCustomElementSelector(target));
+  const elementTargets = targets.filter(isCustomElementSelector).map((target) => target.source);
+  const replaceTargets = options.replaces ?? [];
+  const replaced = replaceTargets.flatMap((target) => parseElementSelector(target.selector) ?? []);
   const collected = collectSources(root, directories);
-  const facts = collected.templates.map((template) => ({ template, facts: collectTemplateFacts(template, currencyWords) }));
+  const facts = collected.templates.map((template) => ({
+    template,
+    facts: collectTemplateFacts(template, currencyWords, { elements: selectorTargets, replaced }),
+  }));
   const elements = facts.flatMap(({ facts: templateFacts }) => templateFacts.elements);
+  const targetElements = facts.flatMap(({ facts: templateFacts }) => templateFacts.targetElements);
+  const replacedElements = facts.flatMap(({ facts: templateFacts }) => templateFacts.replacedElements);
   const pipes = facts.flatMap(({ facts: templateFacts }) => templateFacts.pipes);
   const handFormattedMoney = facts.flatMap(({ facts: templateFacts }) => templateFacts.handFormattedMoney);
   const libraries = collectLibraryDeclarations(root);
@@ -164,8 +217,12 @@ export function scanProject(projectRoot: string, currencyWords: readonly string[
     parseErrors: facts.flatMap(({ template, facts: templateFacts }) =>
       templateFacts.parseError === undefined ? [] : [{ file: template.file, message: templateFacts.parseError }],
     ),
-    components: componentFacts(collected, elements, libraries, options.components ?? []).sort((left, right) => byUsage(left.usage, right.usage)),
+    components: [
+      ...componentFacts(collected, elements, libraries, elementTargets),
+      ...selectorTargets.map((target) => selectorTargetFacts(collected, targetElements, libraries, target)),
+    ].sort((left, right) => byUsage(left.usage, right.usage)),
     pipes: pipeFacts(collected, pipes, libraries, options.pipes ?? []).sort(byUsage),
     handFormattedMoney: { count: handFormattedMoney.length, examples: handFormattedMoney.slice(0, MAX_EXAMPLES) },
+    ...(replaceTargets.length === 0 ? {} : { replacements: summarizeReplacements(replaceTargets, replacedElements) }),
   };
 }
