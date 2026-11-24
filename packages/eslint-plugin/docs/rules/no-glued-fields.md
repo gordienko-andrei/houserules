@@ -33,9 +33,14 @@ Structure must be defined in the markup, not only by how the text looks:
 4. A separator after the last value inside an `@if` block, when the next value comes right after the block:
    `@if (platform) { {{ platform }} · } {{ currency }}`. The same glue, split by a condition. A separator
    at the end of a `@for` item is allowed: it joins items of one list.
+5. A separator before the first value inside an `@if` block, when a value comes right before the block:
+   `{{ label }} @if (context) { · {{ context }} }`. The mirror case of 4; a `@for` item is allowed for the
+   same reason.
 
 Spaces and words between values are allowed (`{{ first }} {{ last }}`, `{{ done }} из {{ total }}`), and
-so are dashes for ranges and `/` for fractions. Text in attributes, inside `<code>`, `<pre>`, `<kbd>`,
+so are dashes for ranges and `/` for fractions. Dashes are never reported, even `{{ id }} — {{ message }}`:
+a template cannot tell a range (`{{ from }} — {{ to }}`) from glue, and a false report on every range costs
+more than a missed one. Text in attributes, inside `<code>`, `<pre>`, `<kbd>`,
 `<samp>` and inside elements with the `sr-only`, `visually-hidden` or `cdk-visually-hidden` class is not
 checked: nobody sees it glued.
 

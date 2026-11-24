@@ -32,6 +32,24 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
   {{ b }}
 </p>`,
     '<p>{{ total }} ·</p>',
+    `<p>
+  <b>{{ label }}</b>
+  @if (context) {
+    · {{ context }}
+  }
+</p>`,
+    `<p>
+  {{ title }}
+  @for (tag of tags; track tag) {
+    , {{ tag }}
+  }
+</p>`,
+    `<p>
+  {{ label }}
+  @if (context) {
+    <b>x</b> · {{ context }}
+  }
+</p>`,
     '<p>{{ result.rows }} rows imported: {{ result.added }} added, {{ result.updated }} updated, {{ result.skipped }} skipped.</p>',
     '<h2 class="sr-only">{{ list.title }}, {{ list.items.length }} items</h2>',
     '<span class="cdk-visually-hidden"><b>{{ a }} · {{ b }}</b></span>',
@@ -82,6 +100,26 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
   {{ c }}
 </p>`,
       errors: [{ messageId: 'separator', data: { marker: '|', hint: '' }, line: 4 }],
+    },
+    {
+      code: `<strong>
+  {{ change.labelKey | transloco }}
+  @if (change.context) {
+    · {{ change.context }}
+  }
+</strong>`,
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, line: 4, column: 10 }],
+    },
+    {
+      code: `<td>
+  {{ a }}
+  @if (b) {
+    @if (c) {
+      | {{ c }}
+    }
+  }
+</td>`,
+      errors: [{ messageId: 'separator', data: { marker: '|', hint: '' }, line: 5 }],
     },
     {
       code: `<span>

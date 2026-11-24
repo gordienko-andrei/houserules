@@ -9,8 +9,15 @@ import {
   type TemplateNode,
   type TextNode,
 } from '../../utils/template-ast';
-import { isFollowedByValueAfterBlock } from './following-value';
-import { findGlueBetweenValues, findStepsInText, findTrailingSeparator, type Glue, type GlueKind } from './glued-text';
+import { isFollowedByValueAfterBlock, isPrecededByValueBeforeBlock } from './following-value';
+import {
+  findGlueBetweenValues,
+  findLeadingSeparator,
+  findStepsInText,
+  findTrailingSeparator,
+  type Glue,
+  type GlueKind,
+} from './glued-text';
 import { isScreenReaderOnly } from './screen-reader-text';
 
 export const RULE_NAME = 'no-glued-fields';
@@ -89,11 +96,14 @@ export const noGluedFields = createRule<[NoGluedFieldsOptions], GlueKind>({
           return;
         }
         const glue = node.expressions.length < 2 ? undefined : findGlueBetweenValues(node.strings);
-        const splitGlue = glue === undefined ? findTrailingSeparator(node.strings) : undefined;
+        const trailingGlue = glue === undefined ? findTrailingSeparator(node.strings) : undefined;
+        const leadingGlue = glue === undefined ? findLeadingSeparator(node.strings) : undefined;
         if (glue !== undefined) {
           report(valuesLoc(node), glue);
-        } else if (splitGlue !== undefined && isFollowedByValueAfterBlock(node)) {
-          report(node.expressions.at(-1)?.loc ?? node.loc, splitGlue);
+        } else if (trailingGlue !== undefined && isFollowedByValueAfterBlock(node)) {
+          report(node.expressions.at(-1)?.loc ?? node.loc, trailingGlue);
+        } else if (leadingGlue !== undefined && isPrecededByValueBeforeBlock(node)) {
+          report(node.expressions.at(0)?.loc ?? node.loc, leadingGlue);
         }
       },
       Text(node: TextNode) {
