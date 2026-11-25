@@ -11,7 +11,7 @@
     "@angular-eslint/template-parser": "^22.6.0",
     "eslint": "^10.13.0",
     "eslint-plugin-houserules": "workspace:*",
-    "houserules": "workspace:*",
+    "@andrewgordienko/houserules": "workspace:*",
     "jiti": "^2.7.0",
     "postcss-scss": "^4.0.9",
     "stylelint": "^18.0.0"

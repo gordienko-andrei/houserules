@@ -1,4 +1,4 @@
-import { describeElementSelector, elementFactsOf, isPlainNativeMatch, parseElementSelector, ruleDocsUrl, type ElementSelector } from 'houserules';
+import { describeElementSelector, elementFactsOf, isPlainNativeMatch, parseElementSelector, ruleDocsUrl, type ElementSelector } from '@andrewgordienko/houserules';
 import { createRule } from '../../utils/create-rule';
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import type { ElementNode } from '../../utils/template-ast';

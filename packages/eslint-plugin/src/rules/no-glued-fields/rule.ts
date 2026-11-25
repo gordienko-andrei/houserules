@@ -1,5 +1,5 @@
 import type { TSESTree } from '@typescript-eslint/utils';
-import { ruleDocsUrl } from 'houserules';
+import { ruleDocsUrl } from '@andrewgordienko/houserules';
 import { createRule } from '../../utils/create-rule';
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import {

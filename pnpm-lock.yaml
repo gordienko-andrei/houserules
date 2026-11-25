@@ -20,6 +20,9 @@ importers:
 
   field-tests:
     devDependencies:
+      '@andrewgordienko/houserules':
+        specifier: workspace:*
+        version: link:../packages/cli
       '@angular-eslint/template-parser':
         specifier: ^22.6.0
         version: 22.6.0(eslint@10.13.0(jiti@2.7.0))(typescript@6.0.3)
@@ -29,9 +32,6 @@ importers:
       eslint-plugin-houserules:
         specifier: workspace:*
         version: link:../packages/eslint-plugin
-      houserules:
-        specifier: workspace:*
-        version: link:../packages/cli
       jiti:
         specifier: ^2.7.0
         version: 2.7.0
@@ -73,6 +73,9 @@ importers:
         specifier: ^8.72.1
         version: 8.72.1(eslint@10.13.0(jiti@2.7.0))(typescript@6.0.3)
     devDependencies:
+      '@andrewgordienko/houserules':
+        specifier: workspace:*
+        version: link:../cli
       '@angular-eslint/template-parser':
         specifier: ^22.6.0
         version: 22.6.0(eslint@10.13.0(jiti@2.7.0))(typescript@6.0.3)
@@ -82,15 +85,15 @@ importers:
       eslint:
         specifier: ^10.13.0
         version: 10.13.0(jiti@2.7.0)
-      houserules:
-        specifier: workspace:*
-        version: link:../cli
       tsdown:
         specifier: ^0.23.5
         version: 0.23.5(typescript@6.0.3)
 
   playground:
     devDependencies:
+      '@andrewgordienko/houserules':
+        specifier: workspace:*
+        version: link:../packages/cli
       '@angular-eslint/template-parser':
         specifier: ^22.6.0
         version: 22.6.0(eslint@10.13.0(jiti@2.7.0))(typescript@6.0.3)
@@ -100,9 +103,6 @@ importers:
       eslint-plugin-houserules:
         specifier: workspace:*
         version: link:../packages/eslint-plugin
-      houserules:
-        specifier: workspace:*
-        version: link:../packages/cli
 
 packages:
 

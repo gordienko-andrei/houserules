@@ -22,7 +22,7 @@ This guide takes a project from zero to checks in CI.
 ## 1. Install
 
 ```sh
-npm i -D houserules eslint-plugin-houserules
+npm i -D @andrewgordienko/houserules eslint-plugin-houserules
 ```
 
 Most Angular projects already have `eslint` and `@angular-eslint/template-parser` (they come with
@@ -51,7 +51,7 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/houserules-0.1.0.tgz ../houserules-packs/eslint-plugin-houserules-0.1.0.tgz
+npm i -D ../houserules-packs/andrewgordienko-houserules-0.1.0.tgz ../houserules-packs/eslint-plugin-houserules-0.1.0.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
@@ -69,7 +69,7 @@ npx houserules init
 New configs select the `recommended` preset. It reports resource-state findings as warnings and leaves
 `no-glued-fields` off. Select `preset: 'strict'` to enable all applicable rules as errors. Existing configs
 without a preset retain their previous defaults. Explicit `rules` settings override the preset.
-The separate `houserules/stylelint` configuration controls stylesheet checks independently.
+The separate `@andrewgordienko/houserules/stylelint` configuration controls stylesheet checks independently.
 
 By default scan searches existing `src`, `apps`, `libs` and `projects` directories and
 `sourceRoot` directories declared in `angular.json`. Set
@@ -135,7 +135,7 @@ Money candidates:
 Then write the config:
 
 ```ts
-import { defineConfig } from 'houserules';
+import { defineConfig } from '@andrewgordienko/houserules';
 
 export default defineConfig({
   roles: {
@@ -302,7 +302,7 @@ npm i -D stylelint
 ```
 
 ```json
-{ "extends": ["stylelint-config-standard-scss", "houserules/stylelint"] }
+{ "extends": ["stylelint-config-standard-scss", "@andrewgordienko/houserules/stylelint"] }
 ```
 
 ```text
@@ -310,7 +310,7 @@ src/app/order.scss
   1:21  ✖  Font size is set in fixed px. Use rem or a typography token of the project, so text scales up to 200% (WCAG 1.4.4).  declaration-property-unit-disallowed-list
 ```
 
-Put `houserules/stylelint` last, so that no other config overrides the rule.
+Put `@andrewgordienko/houserules/stylelint` last, so that no other config overrides the rule.
 
 ## 7. Roll out on an existing project
 

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { findConfigFile, formatScanReport, loadConfig, scanProject, type HouserulesConfigInput } from 'houserules';
+import { findConfigFile, formatScanReport, loadConfig, scanProject, type HouserulesConfigInput } from '@andrewgordienko/houserules';
 import { ensureCheckout } from './checkout';
 import { FIELD_TESTS_ROOT, loadFieldProject } from './field-project';
 import { lintProject } from './lint-project';

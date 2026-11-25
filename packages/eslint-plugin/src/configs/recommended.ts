@@ -1,6 +1,6 @@
 import * as templateParser from '@angular-eslint/template-parser';
 import type { ESLint, Linter } from 'eslint';
-import { loadConfig, parseConfig, resolveRules, type HouserulesConfigInput, type ResolvedRule } from 'houserules';
+import { loadConfig, parseConfig, resolveRules, type HouserulesConfigInput, type ResolvedRule } from '@andrewgordienko/houserules';
 
 export interface RecommendedOptions {
   readonly cwd?: string;

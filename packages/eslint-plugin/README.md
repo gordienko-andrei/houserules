@@ -25,7 +25,7 @@ Requiring a component the project does not have would push an agent to invent on
 Requires ESLint 9+ with flat config, `@angular-eslint/template-parser` 18+ and `houserules`.
 
 ```sh
-npm i -D eslint-plugin-houserules houserules
+npm i -D eslint-plugin-houserules @andrewgordienko/houserules
 npx houserules init
 ```
 

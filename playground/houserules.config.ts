@@ -1,4 +1,4 @@
-import { defineConfig } from 'houserules';
+import { defineConfig } from '@andrewgordienko/houserules';
 
 export default defineConfig({
   roles: {
