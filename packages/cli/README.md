@@ -13,6 +13,7 @@ Step by step setup: [Installing and using Houserules](https://github.com/gordien
 ## Commands
 
 ```sh
+npm i -D @andrewgordienko/houserules eslint-plugin-houserules
 npx houserules init       # create houserules.config.ts, the AGENTS.md section and the skills
 npx houserules scan       # facts about components, pipes and money in templates (--json for agents)
 npx houserules context --list  # discover configured roles
@@ -33,7 +34,7 @@ runs `validate`. A role without a suitable component stays out of the config, an
 ## Config
 
 ```ts
-import { defineConfig } from 'houserules';
+import { defineConfig } from '@andrewgordienko/houserules';
 
 export default defineConfig({
   preset: 'recommended',
@@ -71,8 +72,8 @@ without a declaration is reported as unconfirmed. Library declarations are check
 
 ## Stylesheets
 
-`houserules/stylelint` is a stylelint config that forbids `px` font sizes in `.css` and `.scss`:
+`@andrewgordienko/houserules/stylelint` is a stylelint config that forbids `px` font sizes in `.css` and `.scss`:
 
 ```json
-{ "extends": ["houserules/stylelint"] }
+{ "extends": ["@andrewgordienko/houserules/stylelint"] }
 ```

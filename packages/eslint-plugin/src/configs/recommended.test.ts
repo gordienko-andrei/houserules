@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Linter } from 'eslint';
 import { afterEach, describe, expect, it } from 'vitest';
 import houserules from '../index';
-import { RULE_METADATA } from 'houserules';
+import { RULE_METADATA } from '@andrewgordienko/houserules';
 
 const MONEY_ROLE = {
   component: 'ui-money',

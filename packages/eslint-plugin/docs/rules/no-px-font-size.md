@@ -28,7 +28,7 @@ ESLint sees only templates. For `.css` and `.scss`, `houserules` ships a styleli
 (built-in `declaration-property-unit-disallowed-list`):
 
 ```json
-{ "extends": ["houserules/stylelint"] }
+{ "extends": ["@andrewgordienko/houserules/stylelint"] }
 ```
 
 Sizes behind SCSS variables and mixins (`font-size: $base`) and inline `styles` of components are not checked.

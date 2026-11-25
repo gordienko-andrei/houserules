@@ -36,7 +36,7 @@
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
     "@angular-eslint/template-parser": ">=18.0.0",
-    "houserules": "workspace:^"
+    "@andrewgordienko/houserules": "workspace:^"
   },
   "dependencies": {
     "@typescript-eslint/utils": "^8.72.1"
@@ -45,7 +45,7 @@
     "@angular-eslint/template-parser": "^22.6.0",
     "@typescript-eslint/rule-tester": "^8.72.1",
     "eslint": "^10.13.0",
-    "houserules": "workspace:*",
+    "@andrewgordienko/houserules": "workspace:*",
     "tsdown": "^0.23.5"
   },
   "exports": {

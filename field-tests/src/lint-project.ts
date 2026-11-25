@@ -3,7 +3,7 @@ import { relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { ESLint } from 'eslint';
 import houserules from 'eslint-plugin-houserules';
-import type { HouserulesConfigInput } from 'houserules';
+import type { HouserulesConfigInput } from '@andrewgordienko/houserules';
 import { IGNORED_DIRECTORIES, listTemplateFiles } from './template-files';
 
 export interface Finding {

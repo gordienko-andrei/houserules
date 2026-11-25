@@ -4,7 +4,7 @@ import { CONFIG_FILE_NAMES, findConfigFile, loadConfig } from '../config/load-co
 import { generateFiles, type FileChange } from '../generate/generate-files';
 import { SETUP_SKILL_NAME, SKILLS_DIRECTORY } from '../generate/skills';
 
-export const CONFIG_TEMPLATE = `import { defineConfig } from 'houserules';
+export const CONFIG_TEMPLATE = `import { defineConfig } from '@andrewgordienko/houserules';
 
 export default defineConfig({
   preset: 'recommended',

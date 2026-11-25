@@ -7,7 +7,7 @@ Houserules помогает Angular-команде описать, как её �
 Пример роли денег задаётся в `houserules.config.ts`.
 
 ```ts
-import { defineConfig } from 'houserules';
+import { defineConfig } from '@andrewgordienko/houserules';
 
 export default defineConfig({
   preset: 'recommended',
@@ -54,7 +54,7 @@ export default [
 ];
 ```
 
-При запуске ESLint из другого каталога передайте `{ cwd: import.meta.dirname }`. Для CSS и SCSS подключите отдельно `houserules/stylelint`, как показано в руководстве установки.
+При запуске ESLint из другого каталога передайте `{ cwd: import.meta.dirname }`. Для CSS и SCSS подключите отдельно `@andrewgordienko/houserules/stylelint`, как показано в руководстве установки.
 
 Агент сначала запускает `npx houserules context --list`, затем выбирает нужные роли командой, например,
 `npx houserules context --roles money,status`. Команда возвращает выбранные примеры и общие правила.

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import houserulesStylelint from 'houserules/stylelint';
+import houserulesStylelint from '@andrewgordienko/houserules/stylelint';
 import postcssScss from 'postcss-scss';
 import stylelint from 'stylelint';
 import type { FileProblem, Finding } from './lint-project';

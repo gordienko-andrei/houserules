@@ -7,7 +7,7 @@ import {
   type ExpressionNode,
   type InterpolationNode,
 } from '../../utils/template-ast';
-import { describeElementSelector, findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from 'houserules';
+import { describeElementSelector, findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '@andrewgordienko/houserules';
 import { normalizeExpression, renderUsage } from './usage';
 
 export const RULE_NAME = 'use-money-component';

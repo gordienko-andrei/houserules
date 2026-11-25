@@ -16,7 +16,7 @@ The command builds the packages, then for the project:
 1. checks out the pinned commit into `.checkouts/<project>` (shallow, not committed);
 2. runs `scan` with the project config;
 3. lints every `.html` template with `configs.recommended()` only, ignoring the project's own ESLint config;
-4. lints every `.css` and `.scss` file with `houserules/stylelint` only;
+4. lints every `.css` and `.scss` file with `@andrewgordienko/houserules/stylelint` only;
 5. writes `projects/<project>/report.md`: versions, time, crashes, parse errors, counts per rule, findings with
    code, and the scan summary.
 
