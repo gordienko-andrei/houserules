@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { resolve } from 'node:path';
 import { defineCommand, runMain } from 'citty';
 import { version } from '../package.json';
 import { findConfigFile, loadConfig } from './config/load-config';
 import { formatInitResult, initProject } from './commands/init';
+import { findAgentsRoot } from './generate/agents-root';
 import { generateFiles } from './generate/generate-files';
 import { renderContext } from './generate/agents-section';
 import { findBuiltInRole } from './config/roles';
@@ -15,19 +17,30 @@ const cwdArgument = {
   cwd: { type: 'string', description: 'Project root', default: process.cwd() },
 } as const;
 
+const agentsDirArgument = {
+  'agents-dir': {
+    type: 'string',
+    description: 'Where AGENTS.md, CLAUDE.md and .claude/skills live. Default: the nearest folder with AGENTS.md up to the git root, else the project root',
+  },
+} as const;
+
+function agentsRootOf(args: { readonly cwd: string; readonly 'agents-dir'?: string }): string {
+  return args['agents-dir'] === undefined ? findAgentsRoot(args.cwd) : resolve(args.cwd, args['agents-dir']);
+}
+
 const init = defineCommand({
   meta: { name: 'init', description: 'Create houserules.config.ts, the AGENTS.md section and the skills' },
-  args: cwdArgument,
+  args: { ...cwdArgument, ...agentsDirArgument },
   run({ args }) {
-    console.info(formatInitResult(initProject(args.cwd)));
+    console.info(formatInitResult(initProject(args.cwd, agentsRootOf(args))));
   },
 });
 
 const generate = defineCommand({
   meta: { name: 'generate', description: 'Update the AGENTS.md section and the skills from the config' },
-  args: { ...cwdArgument, check: { type: 'boolean', description: 'Fail if generated files are out of date' } },
+  args: { ...cwdArgument, ...agentsDirArgument, check: { type: 'boolean', description: 'Fail if generated files are out of date' } },
   run({ args }) {
-    const changes = generateFiles(args.cwd, loadConfig(args.cwd).config, { check: args.check === true });
+    const changes = generateFiles(args.cwd, loadConfig(args.cwd).config, { check: args.check === true, agentsRoot: agentsRootOf(args) });
     const changed = changes.filter((change) => change.isChanged);
     if (args.check === true && changed.length > 0) {
       console.error(`Out of date: ${changed.map((change) => change.path).join(', ')}. Run \`npx houserules generate\`.`);

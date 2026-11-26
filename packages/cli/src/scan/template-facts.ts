@@ -36,10 +36,18 @@ export interface ReplacedElement {
 export interface TemplateTargets {
   readonly elements?: readonly ElementSelector[];
   readonly replaced?: readonly ElementSelector[];
+  readonly nonComponentAttributes?: readonly string[];
+}
+
+export interface AttributeUsage {
+  readonly name: string;
+  readonly element: string;
+  readonly example: UsageExample;
 }
 
 export interface TemplateFacts {
   readonly elements: readonly ElementUsage[];
+  readonly attributes: readonly AttributeUsage[];
   readonly targetElements: readonly ElementUsage[];
   readonly replacedElements: readonly ReplacedElement[];
   readonly pipes: readonly PipeUsage[];
@@ -110,20 +118,42 @@ function elementUsage(source: TemplateSource, node: WalkedNode): ElementUsage | 
   return usageAs(name, source, node, offsets);
 }
 
-function targetUsages(source: TemplateSource, node: WalkedNode, targets: readonly ElementSelector[]): ElementUsage[] {
+function targetUsages(
+  source: TemplateSource,
+  node: WalkedNode,
+  ancestors: readonly WalkedNode[],
+  targets: readonly ElementSelector[],
+): ElementUsage[] {
   const offsets = spanOf(node, 'startSourceSpan');
   if (targets.length === 0 || offsets === undefined) return [];
-  const facts = elementFactsOf(node);
+  const facts = elementFactsOf(node, ancestors);
   return targets.filter((target) => matchesElementSelector(target, facts)).map((target) => usageAs(target.source, source, node, offsets));
 }
 
-function replacedElements(source: TemplateSource, node: WalkedNode, selectors: readonly ElementSelector[]): ReplacedElement[] {
+function attributeUsages(source: TemplateSource, node: WalkedNode): AttributeUsage[] {
   const offsets = spanOf(node, 'startSourceSpan');
+  if (offsets === undefined) return [];
+  const element = String(node['name']);
+  return directiveAttributesOf(elementFactsOf(node)).map((name) => ({ name, element, example: exampleAt(source, offsets) }));
+}
+
+function replacedElements(
+  source: TemplateSource,
+  node: WalkedNode,
+  ancestors: readonly WalkedNode[],
+  targets: TemplateTargets,
+): ReplacedElement[] {
+  const offsets = spanOf(node, 'startSourceSpan');
+  const selectors = targets.replaced ?? [];
   if (selectors.length === 0 || offsets === undefined) return [];
-  const facts = elementFactsOf(node);
+  const facts = elementFactsOf(node, ancestors);
   return selectors
     .filter((selector) => matchesElementSelector(selector, facts))
-    .map((selector) => ({ selector: selector.source, directives: directiveAttributesOf(facts, selector), example: exampleAt(source, offsets) }));
+    .map((selector) => ({
+      selector: selector.source,
+      directives: directiveAttributesOf(facts, selector, targets.nonComponentAttributes),
+      example: exampleAt(source, offsets),
+    }));
 }
 
 function expressionSpans(node: WalkedNode): (Offsets | undefined)[] {
@@ -144,6 +174,7 @@ function handFormattedMoneyAt(source: TemplateSource, node: WalkedNode, currency
 
 export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[], targets: TemplateTargets = {}): TemplateFacts {
   const elements: ElementUsage[] = [];
+  const attributes: AttributeUsage[] = [];
   const targetElements: ElementUsage[] = [];
   const replaced: ReplacedElement[] = [];
   const pipes: PipeUsage[] = [];
@@ -153,17 +184,18 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
     templateNodes = parseForESLint(source.text, { filePath: source.file }).ast.templateNodes;
   } catch (error) {
     const parseError = error instanceof Error ? error.message : String(error);
-    return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney, parseError };
+    return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney, parseError };
   }
-  walkTemplate(templateNodes, (node) => {
+  walkTemplate(templateNodes, (node, ancestors) => {
     const offsets = spanOf(node, 'sourceSpan');
     if (node.type === 'Element') {
       const usage = elementUsage(source, node);
       if (usage !== undefined) {
         elements.push(usage);
       }
-      targetElements.push(...targetUsages(source, node, targets.elements ?? []));
-      replaced.push(...replacedElements(source, node, targets.replaced ?? []));
+      attributes.push(...attributeUsages(source, node));
+      targetElements.push(...targetUsages(source, node, ancestors, targets.elements ?? []));
+      replaced.push(...replacedElements(source, node, ancestors, targets));
     } else if (node.type === 'BindingPipe' && offsets !== undefined) {
       pipes.push({ name: String(node['name']), example: exampleAt(source, offsets) });
     } else if (node.type === 'Interpolation') {
@@ -173,5 +205,5 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       }
     }
   });
-  return { elements, targetElements, replacedElements: replaced, pipes, handFormattedMoney };
+  return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney };
 }

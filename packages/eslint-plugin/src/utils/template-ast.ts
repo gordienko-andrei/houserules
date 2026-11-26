@@ -58,6 +58,7 @@ export interface TextAttributeNode extends TemplateNode {
 
 export interface ExpressionWithSourceNode extends TemplateNode {
   readonly source: string | null;
+  readonly ast?: ExpressionNode;
 }
 
 export interface BoundAttributeNode extends TemplateNode {

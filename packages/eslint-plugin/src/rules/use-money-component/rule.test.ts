@@ -13,6 +13,11 @@ createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
     '<p>Price in $ is shown below</p>',
     '<small>{{ holding.symbol }} · {{ holding.currency }}</small>',
     '<p>{{ account.name }} {{ account.currency }}</p>',
+    "<p>{{ '£' }}</p>",
+    '<p><span>£</span> per month</p>',
+    '<p>{{ distance }} km £</p>',
+    '<ui-money [value]="total" />',
+    "<p [title]=\"'Total ' + total\">x</p>",
     {
       code: '<p>{{ total | currency }}</p>',
       options: [{ pipes: ['money'] }],
@@ -37,7 +42,7 @@ createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
       errors: [
         {
           messageId: 'moneyNextToCurrencyUsage',
-          data: { value: "price / 15 | number: '1.2-2'", usage: `<ui-money [value]="price / 15 | number: '1.2-2'" />` },
+          data: { value: 'price / 15', usage: '<ui-money [value]="price / 15" />' },
           line: 2,
         },
       ],
@@ -169,6 +174,48 @@ createTemplateRuleTester().run(RULE_NAME, useMoneyComponent, {
       code: '<p>{{ kind === "debt" ? debt : 0 }} ₽</p>',
       options: [{ component: 'ui-money', usage: MONEY_COMPONENT_USAGE }],
       errors: [{ messageId: 'moneyNextToCurrency', data: { target: '<ui-money>' } }],
+    },
+    {
+      code: '<p>{{ a | number }} £</p>',
+      options: [{ component: 'ui-money', usage: MONEY_COMPONENT_USAGE }],
+      errors: [{ messageId: 'moneyNextToCurrencyUsage', data: { value: 'a', usage: '<ui-money [value]="a" />' } }],
+    },
+    {
+      code: "<dd>{{ d.salaryFloorGbp ? '£' + (d.salaryFloorGbp | number) : 'Not set' }}</dd>",
+      options: [{ component: 'ui-money', usage: MONEY_COMPONENT_USAGE }],
+      errors: [
+        {
+          messageId: 'moneyNextToCurrencyUsage',
+          data: { value: 'd.salaryFloorGbp', usage: '<ui-money [value]="d.salaryFloorGbp" />' },
+          column: 34,
+        },
+      ],
+    },
+    {
+      code: "<p>{{ '£' + (a | number) }}</p>",
+      errors: [{ messageId: 'moneyNextToCurrency' }],
+    },
+    {
+      code: '<p>{{ `£${a}` }}</p>',
+      errors: [{ messageId: 'moneyNextToCurrency' }],
+    },
+    {
+      code: "<button [attr.aria-label]=\"'Price ' + a + ' GBP'\"></button>",
+      options: [{ currencyWords: ['GBP'] }],
+      errors: [{ messageId: 'moneyNextToCurrency' }],
+    },
+    {
+      code: '<p><span class="unit">£</span>{{ a }}</p>',
+      options: [{ component: 'ui-money', usage: MONEY_COMPONENT_USAGE }],
+      errors: [{ messageId: 'moneyNextToCurrencyUsage', data: { value: 'a', usage: '<ui-money [value]="a" />' } }],
+    },
+    {
+      code: '<td><b>{{ order.total }}</b> <small>₽</small></td>',
+      errors: [{ messageId: 'moneyNextToCurrency' }],
+    },
+    {
+      code: '<p>{{ a | number }}k £</p>',
+      errors: [{ messageId: 'moneyNextToCurrency' }],
     },
   ],
 });

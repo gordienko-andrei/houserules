@@ -10,6 +10,8 @@ createTemplateRuleTester().run(RULE_NAME, noPxFontSize, {
     '<app-text [font]="\'12px\'">a</app-text>',
     '<p [ngStyle]="{ \'font-size.rem\': 1, width: \'10px\' }">a</p>',
     '<p class="text-sm">a</p>',
+    '<p class="text-[#ff0000] w-[12px] text-[1.5rem]">a</p>',
+    '<p class="context-[12px]">a</p>',
   ],
   invalid: [
     {
@@ -17,6 +19,13 @@ createTemplateRuleTester().run(RULE_NAME, noPxFontSize, {
       errors: [{ messageId: 'pxFontSize', line: 1, column: 4 }],
     },
     { code: '<p style="font: bold 12px Arial">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: '<p class="flex text-[12px]">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: '<p class="md:!text-[13.5px]/[16px]">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: '<p class="text-[length:12px]">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: '<p class="[font-size:11px]">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: '<p [class.text-[12px]]="small">a</p>', errors: [{ messageId: 'pxFontSize' }] },
+    { code: `<p [ngClass]="{ 'text-[12px]': small }">a</p>`, errors: [{ messageId: 'pxFontSize' }] },
+    { code: `<p [class]="small ? 'text-[12px]' : 'text-base'">a</p>`, errors: [{ messageId: 'pxFontSize' }] },
     { code: '<p [style.font-size.px]="14">a</p>', errors: [{ messageId: 'pxFontSize' }] },
     { code: '<p [style.fontSize]="\'12px\'">a</p>', errors: [{ messageId: 'pxFontSize' }] },
     { code: '<p [style.font-size]="size + \'px\'">a</p>', errors: [{ messageId: 'pxFontSize' }] },

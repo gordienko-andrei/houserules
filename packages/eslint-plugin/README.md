@@ -30,24 +30,30 @@ npx houserules init
 ```
 
 ```js
-// eslint.config.js
+// eslint.config.mjs
 import houserules from 'eslint-plugin-houserules';
 
 export default [
   // ...your configs
-  ...houserules.configs.recommended(),
+  ...houserules.configs.recommended({ cwd: import.meta.dirname }),
 ];
 ```
 
+Use `eslint.config.mjs`, or `.js` in a package with `"type": "module"`, so Node does not print
+`MODULE_TYPELESS_PACKAGE_JSON` on every run.
+
 `configs.recommended()` reads `houserules.config.ts` from the current directory while ESLint loads its config,
 and returns blocks for `**/*.html`: rules for the mapped roles, rules that need no role, and `off` for the files
-of each role's own component. Options:
+of each role's own component and the `ignores` of each rule. Without `houserules.config.ts` it warns and returns no
+blocks, so the rest of the ESLint config keeps working. Options:
 
 | Option | Default | Description |
 | --- | --- | --- |
 | `cwd` | `process.cwd()` | Where to look for `houserules.config.ts`, for example `import.meta.dirname`. |
 | `config` | none | The config object itself, instead of reading the file. |
 | `files` | `['**/*.html']` | Files the rules apply to. |
+| `inlineTemplates` | `false` | Also check `template:` strings of components through the `houserules/inline-templates` processor. Leave it off if angular-eslint already extracts inline templates. |
+| `inlineTemplateFiles` | `['**/*.ts']` | Files the processor reads. |
 
 `eslint --cache` sees changes of `houserules.config.ts`, because they change the computed config. The ESLint
 server in an editor keeps the config it loaded: restart it after editing `houserules.config.ts`.

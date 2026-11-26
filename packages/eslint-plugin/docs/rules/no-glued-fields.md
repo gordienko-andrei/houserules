@@ -31,16 +31,30 @@ Structure must be defined in the markup, not only by how the text looks:
    a numbered list. A menu path is allowed: `Settings → Account → Delete account`, where every item
    starts with a capital letter and has at most six words.
 4. A separator after the last value inside an `@if` block, when the next value comes right after the block:
-   `@if (platform) { {{ platform }} · } {{ currency }}`. The same glue, split by a condition. A separator
-   at the end of a `@for` item is allowed: it joins items of one list.
+   `@if (platform) { {{ platform }} · } {{ currency }}`. The same glue, split by a condition. At the end of a
+   `@for` item, `·`, `•` and `|` are reported too: a line of items glued with dots is a list and belongs in a
+   `<ul>` with `gap`. A comma or `;` there is allowed: it joins items of one list as prose does.
 5. A separator before the first value inside an `@if` block, when a value comes right before the block:
-   `{{ label }} @if (context) { · {{ context }} }`. The mirror case of 4; a `@for` item is allowed for the
-   same reason.
+   `{{ label }} @if (context) { · {{ context }} }`. The mirror case of 4, with the same rule for `@for` items.
+
+Text built inside an expression counts the same as text around it, because an agent rewrites
+`{{ a }} · {{ b }}` into exactly these forms when the rule reports it:
+
+- concatenation and template literals: `{{ a + ' · ' + b }}`, ``{{ `${a} · ${b}` }}``;
+- `join` with a separator: `{{ items.join(' · ') }}`;
+- a piece shown on a condition: `{{ city }}{{ isRemote ? ' · remote' : '' }}`, `{{ a }}{{ b ? ' | ' + b : '' }}`;
+- a separator between `@for` items: `{{ item }}{{ last ? '' : ' · ' }}` or `{{ item }} ·` at the end of the item.
+
+Commas and `;` stay allowed where they read as prose: between items of one list (`{{ tags.join(', ') }}`,
+`{{ tag }},` at the end of a `@for` item) and before a phrase shown on a condition
+(`Gaps ({{ count }}{{ hasRequired ? ', including required points' : '' }})`).
+
+The error points at the separator itself, not at the first value of the text.
 
 Spaces and words between values are allowed (`{{ first }} {{ last }}`, `{{ done }} из {{ total }}`), and
-so are dashes for ranges and `/` for fractions. Dashes are never reported, even `{{ id }} — {{ message }}`:
+so are dashes for ranges and `/` for fractions. Dashes are not reported by default, even `{{ id }} — {{ message }}`:
 a template cannot tell a range (`{{ from }} — {{ to }}`) from glue, and a false report on every range costs
-more than a missed one. Text in attributes, inside `<code>`, `<pre>`, `<kbd>`,
+more than a missed one. A project that never writes ranges with a dash adds `—` to `glueSeparators`. Text in attributes, inside `<code>`, `<pre>`, `<kbd>`,
 `<samp>` and inside elements with the `sr-only`, `visually-hidden` or `cdk-visually-hidden` class is not
 checked: nobody sees it glued.
 
@@ -94,8 +108,14 @@ Correct:
 ```ts
 interface NoGluedFieldsOptions {
   usages?: { metric?: string; comparison?: string; steps?: string };
+  separators?: string[];
 }
 ```
+
+`separators` replaces the default `['•', '·', '|', ',', ';']`. `,` and `;` keep the exceptions for sentences and
+lists; every other separator is reported wherever it stands between values. `configs.recommended()` fills it
+from `glueSeparators` in `houserules.config.ts`: drop `,` if `{{ city }}, {{ country }}` is normal text for your
+project, add `—` if dashes never mean a range there.
 
 Every message ends with a link to this page. With `usages`, the message also names the call of the project
 component for that role, for example

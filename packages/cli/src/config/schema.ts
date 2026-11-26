@@ -4,6 +4,8 @@ import { isBuiltInRole } from './roles';
 
 export const VALUE_PLACEHOLDER = '$value';
 
+export const DEFAULT_GLUE_SEPARATORS: readonly string[] = ['•', '·', '|', ',', ';'];
+
 export const RULE_NAMES = [
   'use-money-component',
   'no-glued-fields',
@@ -18,7 +20,8 @@ export type RuleName = (typeof RULE_NAMES)[number];
 const nonEmptyString = z.string().trim().min(1);
 
 const elementSelector = nonEmptyString.refine((selector) => parseElementSelector(selector) !== undefined, {
-  message: 'Use a tag with optional attribute conditions, for example `ui-money`, `button[pButton]` or `button:not([pButton])`.',
+  message:
+    'Use a tag with optional attribute or class conditions, for example `ui-money`, `button[pButton]`, `button:not(.link)` or `button:not(th > *)`.',
 });
 
 const roleMappingSchema = z
@@ -46,6 +49,19 @@ const roleMappingSchema = z
     path: ['replaces'],
   });
 
+const severitySchema = z.enum(['off', 'warn', 'error']);
+
+const ruleSettingSchema = z.union([
+  severitySchema,
+  z.strictObject({
+    severity: severitySchema.optional().describe('Level of the rule; the preset decides when it is left out.'),
+    ignores: z
+      .array(nonEmptyString)
+      .min(1)
+      .describe('Files the rule does not check, for example a template that renders a document such as a resume.'),
+  }),
+]);
+
 const restrictionSchema = z.strictObject({
   selector: nonEmptyString.describe('An ESLint selector over the template AST, for example `BindingPipe[name="date"]`.'),
   message: nonEmptyString.describe('What to use instead, shown by the linter and to agents.'),
@@ -60,10 +76,19 @@ export const configSchema = z
     roles: z.record(nonEmptyString, roleMappingSchema).default({}),
     currencyWords: z.array(nonEmptyString).default([]).describe('Currency codes or words, for example `руб.`.'),
     moneyPipes: z.array(nonEmptyString).default(['currency']).describe('Pipes that must not format money.'),
+    glueSeparators: z
+      .array(nonEmptyString)
+      .min(1)
+      .optional()
+      .describe('Text that glues values when it stands between them, for example `·` or `—`. `,` and `;` are allowed in sentences.'),
+    nonComponentAttributes: z
+      .array(nonEmptyString)
+      .default([])
+      .describe('Inputs and helper directives that leave a native element native, for example `iconStart` or `appTooltip`.'),
     glossary: nonEmptyString.optional().describe('Domain terms and how to read values, in Markdown.'),
     examples: z.array(nonEmptyString).default([]).describe('Paths to reference components agents should copy.'),
     restrictions: z.array(restrictionSchema).default([]).describe('Project bans that are not tied to a role, with examples.'),
-    rules: z.partialRecord(z.enum(RULE_NAMES), z.enum(['off', 'warn', 'error'])).default({}),
+    rules: z.partialRecord(z.enum(RULE_NAMES), ruleSettingSchema).default({}),
   })
   .superRefine((config, context) => {
     for (const [name, role] of Object.entries(config.roles)) {
@@ -89,7 +114,8 @@ export type HouserulesConfigInput = z.input<typeof configSchema>;
 export type HouserulesConfig = z.output<typeof configSchema>;
 export type RoleMapping = z.output<typeof roleMappingSchema>;
 export type Restriction = z.output<typeof restrictionSchema>;
-export type RuleSeverity = 'off' | 'warn' | 'error';
+export type RuleSeverity = z.output<typeof severitySchema>;
+export type RuleSetting = z.output<typeof ruleSettingSchema>;
 
 export function defineConfig(config: HouserulesConfigInput): HouserulesConfigInput {
   return config;

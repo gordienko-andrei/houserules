@@ -49,7 +49,7 @@ describe('scanProject', () => {
 
   it('discovers workspace source roots and reports incomplete scans and ambiguous declarations', () => {
     const workspace = createFixtureProject({
-      'angular.json': JSON.stringify({ projects: { custom: { sourceRoot: 'custom/source' } } }),
+      'angular.json': JSON.stringify({ projects: { custom: { sourceRoot: 'custom/source' }, app: { sourceRoot: 'src' } } }),
       'package.json': JSON.stringify({ dependencies: { '@vendor/ui': '1.0.0' } }),
       'src/app.html': '<p>app</p>',
       'custom/source/a.ts': "@Component({ selector: 'ui-widget' }) class First {}",
@@ -57,10 +57,29 @@ describe('scanProject', () => {
     });
     try {
       const scan = scanProject(workspace.root);
-      expect(scan.roots).toContain('custom/source');
+      expect(scan.roots).toEqual(['src', 'custom/source']);
       expect(scan.missingDependencies).toContain('@vendor/ui');
       expect(scan.components.find((component) => component.selector === 'ui-widget')?.declarations).toHaveLength(2);
       expect(() => scanProject(workspace.root, [], { roots: ['missing'] })).toThrow('Scan root is not a directory');
+    } finally {
+      workspace.remove();
+    }
+  });
+
+  it('lists attribute directives that a project or library declaration selects on', () => {
+    const workspace = createFixtureProject({
+      'package.json': JSON.stringify({ dependencies: { '@acme/kit': '1.0.0' } }),
+      'node_modules/@acme/kit/index.d.ts':
+        'static ɵdir: i0.ɵɵDirectiveDeclaration<KitButton, "button[kitButton],a[kitButton]", never, {}, {}, never, never, true, never>;',
+      'src/app/tooltip.ts': "@Directive({ selector: '[appTooltip]' }) class Tooltip {}",
+      'src/app/page.html': '<button kitButton appearance="flat">a</button><a kitButton>b</a><button kitButton appTooltip="x">c</button>',
+    });
+    try {
+      const directives = scanProject(workspace.root).directives ?? [];
+      expect(directives.map((directive) => [directive.name, directive.source, directive.count, directive.elements])).toEqual([
+        ['kitButton', 'library', 3, [{ name: 'button', count: 2 }, { name: 'a', count: 1 }]],
+        ['appTooltip', 'project', 1, [{ name: 'button', count: 1 }]],
+      ]);
     } finally {
       workspace.remove();
     }

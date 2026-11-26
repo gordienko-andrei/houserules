@@ -1,3 +1,4 @@
+import { DEFAULT_RESOURCE_FACTORIES, findResourceMembers } from '@andrewgordienko/houserules';
 import { createRule } from '../../utils/create-rule';
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import {
@@ -21,6 +22,7 @@ export const RULE_NAME = 'require-async-states';
 
 export interface RequireAsyncStatesOptions {
   readonly asyncPipe?: boolean;
+  readonly resourceFactories?: readonly string[];
 }
 
 const VALUE_METHOD = 'value';
@@ -75,6 +77,12 @@ export const requireAsyncStates = createRule<[RequireAsyncStatesOptions], 'missi
             type: 'boolean',
             description: 'Also require an `@else` branch for `@if (data$ | async)`.',
           },
+          resourceFactories: {
+            type: 'array',
+            items: { type: 'string', minLength: 1 },
+            uniqueItems: true,
+            description: `Functions that create a resource in the component, besides ${DEFAULT_RESOURCE_FACTORIES.map((name) => `\`${name}\``).join(', ')}.`,
+          },
         },
         additionalProperties: false,
       },
@@ -83,7 +91,14 @@ export const requireAsyncStates = createRule<[RequireAsyncStatesOptions], 'missi
   defaultOptions: [{ asyncPipe: false }],
   create(context, [options]) {
     ensureTemplateParser(context);
+    const factories = [...DEFAULT_RESOURCE_FACTORIES, ...(options.resourceFactories ?? [])];
+    const resourceMembers = findResourceMembers(context.physicalFilename, factories);
     const statesByResource = new Map<string, ResourceStates>();
+
+    // With the component file at hand only its resource members count, so `form.value()` of Signal Forms is left alone.
+    function isResource(path: string): boolean {
+      return resourceMembers === undefined || resourceMembers.has(path.split('.')[0] ?? '');
+    }
     const firstValueCalls = new Map<string, CallNode>();
 
     function update(resource: string, change: (states: ResourceStates) => ResourceStates): void {
@@ -110,7 +125,7 @@ export const requireAsyncStates = createRule<[RequireAsyncStatesOptions], 'missi
         }
         const method = node.receiver.name;
         const resource = resourcePath(node.receiver.receiver);
-        if (resource === undefined) {
+        if (resource === undefined || !isResource(resource)) {
           return;
         }
         if (method === VALUE_METHOD) {

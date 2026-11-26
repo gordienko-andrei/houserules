@@ -22,18 +22,22 @@ function isWalkedNode(value: unknown): value is WalkedNode {
   return typeof value === 'object' && value !== null && typeof (value as { type?: unknown }).type === 'string';
 }
 
-export function walkTemplate(value: unknown, visit: (node: WalkedNode) => void): void {
+export type TemplateVisitor = (node: WalkedNode, ancestors: readonly WalkedNode[]) => void;
+
+// `ancestors` lists the enclosing elements, nearest first.
+export function walkTemplate(value: unknown, visit: TemplateVisitor, ancestors: readonly WalkedNode[] = []): void {
   if (Array.isArray(value)) {
-    value.forEach((item) => walkTemplate(item, visit));
+    value.forEach((item) => walkTemplate(item, visit, ancestors));
     return;
   }
   if (!isWalkedNode(value)) {
     return;
   }
-  visit(value);
+  visit(value, ancestors);
+  const childAncestors = value.type === 'Element' ? [value, ...ancestors] : ancestors;
   for (const [key, child] of Object.entries(value)) {
     if (!SKIPPED_KEYS.has(key) && typeof child === 'object' && child !== null) {
-      walkTemplate(child, visit);
+      walkTemplate(child, visit, childAncestors);
     }
   }
 }

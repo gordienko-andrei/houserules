@@ -23,8 +23,18 @@ describe('summarizeReplacements', () => {
           { name: 'matChipRemove', count: 2 },
           { name: 'mat-tab-link', count: 1 },
         ],
+        undeclaredAttributes: [],
       },
     ]);
+  });
+
+  it('names skipped attributes that no declared directive selects on', () => {
+    const [summary] = summarizeReplacements(
+      [{ selector: 'button' }],
+      [replaced('src/a.html', ['tuiButton', 'iconStart'])],
+      new Set(['tuibutton']),
+    );
+    expect(summary?.undeclaredAttributes).toEqual(['iconStart']);
   });
 
   it('leaves out the files of the role component, as the linter does', () => {

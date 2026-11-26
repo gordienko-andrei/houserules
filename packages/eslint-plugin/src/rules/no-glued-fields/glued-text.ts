@@ -5,10 +5,24 @@ export interface Glue {
   readonly marker: string;
 }
 
+import { DEFAULT_GLUE_SEPARATORS } from '@andrewgordienko/houserules';
+
+export interface GlueSeparators {
+  readonly marks: readonly string[];
+  readonly punctuation: readonly string[];
+}
+
+const SENTENCE_PUNCTUATION = new Set([',', ';']);
+
+export function groupSeparators(separators: readonly string[] = DEFAULT_GLUE_SEPARATORS): GlueSeparators {
+  return {
+    marks: separators.filter((separator) => !SENTENCE_PUNCTUATION.has(separator)),
+    punctuation: separators.filter((separator) => SENTENCE_PUNCTUATION.has(separator)),
+  };
+}
+
+const DEFAULT_GROUPS = groupSeparators();
 const ARROW = /→|⇒|⟶|➔|➝|->|=>/g;
-const SEPARATOR = /[•·|;,]/;
-const SEPARATOR_MARK = /[•·|]/;
-const PUNCTUATION = /[;,]/;
 const SENTENCE_END = /[.!?…]$/;
 const CAPITALISED = /^\p{Lu}/u;
 const MIN_STEP_ARROWS = 2;
@@ -22,24 +36,27 @@ function isSentence(strings: readonly string[]): boolean {
   return SENTENCE_END.test(strings.join('').trim());
 }
 
-function firstMatch(gaps: readonly string[], pattern: RegExp): string | undefined {
+function firstMatch(gaps: readonly string[], separators: readonly string[]): string | undefined {
+  let found: { marker: string; index: number } | undefined;
   for (const gap of gaps) {
-    const match = pattern.exec(gap)?.[0];
-    if (match !== undefined) {
-      return match;
+    for (const separator of separators) {
+      const index = gap.indexOf(separator);
+      if (index >= 0 && (found === undefined || index < found.index)) found = { marker: separator, index };
     }
+    if (found !== undefined) return found.marker;
   }
   return undefined;
 }
 
-export function findGlueBetweenValues(strings: readonly string[]): Glue | undefined {
+export function findGlueBetweenValues(strings: readonly string[], separators: GlueSeparators = DEFAULT_GROUPS): Glue | undefined {
   const gaps = strings.slice(1, -1);
   const arrows = strings.flatMap(arrowsIn);
   const [firstArrow] = arrows;
   if (firstArrow !== undefined && gaps.some((gap) => arrowsIn(gap).length > 0)) {
     return { kind: arrows.length >= MIN_STEP_ARROWS ? 'steps' : 'comparison', marker: firstArrow };
   }
-  const separator = firstMatch(gaps, SEPARATOR_MARK) ?? (isSentence(strings) ? undefined : firstMatch(gaps, PUNCTUATION));
+  const separator =
+    firstMatch(gaps, separators.marks) ?? (isSentence(strings) ? undefined : firstMatch(gaps, separators.punctuation));
   return separator === undefined ? undefined : { kind: 'separator', marker: separator };
 }
 
@@ -68,12 +85,20 @@ export function findStepsInText(text: string): Glue | undefined {
   return { kind: 'steps', marker: firstArrow };
 }
 
-export function findTrailingSeparator(strings: readonly string[]): Glue | undefined {
-  const tail = (strings.at(-1) ?? '').trim();
-  return strings.length > 1 && tail.length === 1 && SEPARATOR.test(tail) ? { kind: 'separator', marker: tail } : undefined;
+function edgeSeparator(text: string | undefined, separators: GlueSeparators): Glue | undefined {
+  const edge = (text ?? '').trim();
+  const isSeparator = separators.marks.includes(edge) || separators.punctuation.includes(edge);
+  return isSeparator ? { kind: 'separator', marker: edge } : undefined;
 }
 
-export function findLeadingSeparator(strings: readonly string[]): Glue | undefined {
-  const head = (strings.at(0) ?? '').trim();
-  return strings.length > 1 && head.length === 1 && SEPARATOR.test(head) ? { kind: 'separator', marker: head } : undefined;
+export function findTrailingSeparator(strings: readonly string[], separators: GlueSeparators = DEFAULT_GROUPS): Glue | undefined {
+  return strings.length > 1 ? edgeSeparator(strings.at(-1), separators) : undefined;
+}
+
+export function findLeadingSeparator(strings: readonly string[], separators: GlueSeparators = DEFAULT_GROUPS): Glue | undefined {
+  return strings.length > 1 ? edgeSeparator(strings.at(0), separators) : undefined;
+}
+
+export function isSeparatorMark(marker: string, separators: GlueSeparators = DEFAULT_GROUPS): boolean {
+  return separators.marks.includes(marker);
 }

@@ -1,5 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { createTemplateRuleTester } from '../../testing/rule-tester';
 import { RULE_NAME, requireAsyncStates } from './rule';
+
+const ORDERS_PAGE = fileURLToPath(new URL('./fixtures/orders-page.component.html', import.meta.url));
+const LEGACY_PAGE = fileURLToPath(new URL('./fixtures/legacy.html', import.meta.url));
 
 createTemplateRuleTester().run(RULE_NAME, requireAsyncStates, {
   valid: [
@@ -20,8 +24,25 @@ createTemplateRuleTester().run(RULE_NAME, requireAsyncStates, {
       code: '@if (orders$ | async; as orders) { <p>{{ orders.length }}</p> } @else { <ui-spinner /> }',
       options: [{ asyncPipe: true }],
     },
+    { code: '<p>{{ form.value().email }} {{ slider.value() }}</p>', filename: ORDERS_PAGE },
+    { code: '<p>{{ store.items.value() }}</p>', filename: ORDERS_PAGE },
+    { code: '<p>{{ orders.value() }}</p>', filename: LEGACY_PAGE },
   ],
   invalid: [
+    {
+      code: '<p>{{ orders.value()?.length }} {{ profile.value()?.name }}</p>',
+      filename: ORDERS_PAGE,
+      errors: [
+        { messageId: 'missingStates', data: { resource: 'orders', states: 'loading, error', hints: '`@if (orders.isLoading())`, `@if (orders.error())`' } },
+        { messageId: 'missingStates', data: { resource: 'profile', states: 'loading, error', hints: '`@if (profile.isLoading())`, `@if (profile.error())`' } },
+      ],
+    },
+    {
+      code: '<p>{{ orders.value() }}</p>',
+      filename: LEGACY_PAGE,
+      options: [{ resourceFactories: ['apiResource'] }],
+      errors: [{ messageId: 'missingStates' }],
+    },
     {
       code: '<p>{{ profile.value()?.name }}</p>',
       errors: [

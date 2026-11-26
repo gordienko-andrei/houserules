@@ -42,17 +42,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@angular-eslint/template-parser": "^22.6.0",
     "citty": "^0.2.2",
     "jiti": "^2.7.0",
     "minimatch": "^10.2.6",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@angular-eslint/template-parser": "^22.6.0",
     "tsdown": "^0.23.5",
     "typescript": "~6.0.3"
   },
   "peerDependencies": {
+    "@angular-eslint/template-parser": ">=18.0.0",
     "typescript": ">=5.0.0"
   }
 }

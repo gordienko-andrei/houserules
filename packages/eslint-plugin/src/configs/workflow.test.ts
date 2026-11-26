@@ -84,7 +84,7 @@ describe('CLI and ESLint workflow', () => {
       writeFileSync(join(root, 'houserules.config.mjs'), config('{{ order.createdAt | date }}'));
       const valid = run('validate');
       expect(valid.status).toBe(0);
-      expect(valid.stdout).toContain('action: replaces `button`: 1 native element(s) to replace (screen.html:1); 1 skipped because they carry a directive: matChipRemove 1.');
+      expect(valid.stdout).toContain('action: replaces `button`: 1 native element(s) to replace (screen.html:1); 1 skipped because they carry directive attributes: matChipRemove on 1 (one element may carry several).');
       expect(valid.stdout).toContain('action: `<button></button>` is reported as a native element to replace.');
       expect(valid.stdout).toContain('restriction 1 (`BindingPipe[name="date"]`): the bad example is reported.');
       expect(valid.stdout).toContain('restriction 1 (`BindingPipe[name="date"]`): the good example passes Houserules rules.');

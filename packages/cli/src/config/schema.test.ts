@@ -7,6 +7,7 @@ describe('parseConfig', () => {
       roles: {},
       currencyWords: [],
       moneyPipes: ['currency'],
+      nonComponentAttributes: [],
       examples: [],
       restrictions: [],
       rules: {},
@@ -60,12 +61,12 @@ describe('parseConfig', () => {
       roles: { action: { component: 'button[mat-flat-button]', usage: '<button mat-flat-button>{{ $value }}</button>' } },
     });
     expect(config.roles['action']?.component).toBe('button[mat-flat-button]');
-    expect(() => parseConfig({ roles: { action: { component: '.btn', usage: '<x />' } } })).toThrow(/roles\.action\.component/);
+    expect(() => parseConfig({ roles: { action: { component: 'button:hover', usage: '<x />' } } })).toThrow(/roles\.action\.component/);
   });
 
   it('rejects unsupported selectors and replaces on a pipe role', () => {
     expect(() =>
-      parseConfig({ roles: { action: { component: 'p-button', usage: '<p-button />', replaces: '.btn' } } }),
+      parseConfig({ roles: { action: { component: 'p-button', usage: '<p-button />', replaces: 'div > button' } } }),
     ).toThrow(/roles\.action\.replaces/);
     expect(() =>
       parseConfig({ roles: { money: { pipe: 'amount', usage: '{{ $value | amount }}', replaces: 'span' } } }),

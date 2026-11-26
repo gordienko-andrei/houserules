@@ -15,4 +15,17 @@ describe('parseLibraryTypings', () => {
       pipes: ['tuiAmount'],
     });
   });
+
+  it('reads elements of directives and of selectors with conditions', () => {
+    const typings = `
+      static ɵcmp: i0.ɵɵComponentDeclaration<TuiIcon, "tui-icon:not([tuiBadge])", never, {}, {}, never, never, true, never>;
+      static ɵdir: i0.ɵɵDirectiveDeclaration<RouterOutlet, "router-outlet", ["outlet"], {}, {}, never, never, true, never>;
+    `;
+    expect(parseLibraryTypings(typings).elements).toEqual(['tui-icon', 'router-outlet']);
+  });
+
+  it('unescapes quotes inside a selector', () => {
+    const typings = 'static ɵcmp: i0.ɵɵComponentDeclaration<TuiCheckbox, "input[type=\\"checkbox\\"][tuiCheckbox]", never, {}, {}, never, never, true, never>;';
+    expect(parseLibraryTypings(typings).attributeSelectors).toEqual(['input[type="checkbox"][tuiCheckbox]']);
+  });
 });

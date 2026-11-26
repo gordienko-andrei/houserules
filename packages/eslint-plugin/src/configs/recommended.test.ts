@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Linter } from 'eslint';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import houserules from '../index';
 import { RULE_METADATA } from '@andrewgordienko/houserules';
 
@@ -81,6 +81,40 @@ describe('configs.recommended', () => {
     const messages = new Linter({ configType: 'flat' }).verify(template, overridden, 'src/app/test.html');
     expect(messages).toHaveLength(1);
     expect(messages[0]?.severity).toBe(1);
+  });
+
+  it('checks inline templates of components when asked', () => {
+    const stubParser = {
+      parseForESLint: () => ({
+        ast: { type: 'Program', body: [], sourceType: 'module', range: [0, 0], loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 0 } }, tokens: [], comments: [] },
+      }),
+    };
+    const configs: Linter.Config[] = [
+      { files: ['**/*.ts'], languageOptions: { parser: stubParser } },
+      ...houserules.configs.recommended({ config: {}, inlineTemplates: true }),
+    ];
+    const source = [
+      "import { Component } from '@angular/core';",
+      '@Component({',
+      "  selector: 'app-x',",
+      '  template: `<p>',
+      '    {{ a }} · {{ b }}</p>`,',
+      '})',
+      'export class X {}',
+    ].join('\n');
+    // The ESLint CLI lints every block a config matches; the Linter API lints only `.js` blocks unless told otherwise.
+    const messages = new Linter({ configType: 'flat' }).verify(source, configs, { filename: 'src/app/x.component.ts', filterCodeBlock: () => true });
+    expect(messages.map((message) => [message.ruleId, message.line, message.column])).toEqual([['houserules/no-glued-fields', 5, 13]]);
+    expect(houserules.configs.recommended({ config: {} }).some((config) => config.processor !== undefined)).toBe(false);
+  });
+
+  it('leaves the rules out with a warning when there is no config', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'houserules-eslint-'));
+    directories.push(directory);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(houserules.configs.recommended({ cwd: directory })).toEqual([]);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 
   it('loads houserules.config.ts from the given directory', () => {
