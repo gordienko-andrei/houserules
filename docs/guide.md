@@ -43,7 +43,7 @@ To try unreleased changes, build tarballs from this repository and install them 
 # in the Houserules repository
 pnpm install
 pnpm build
-pnpm --filter houserules --filter eslint-plugin-houserules pack --pack-destination "$PWD/../houserules-packs"
+pnpm --filter @andrewgordienko/houserules --filter eslint-plugin-houserules pack --pack-destination "$PWD/../houserules-packs"
 ```
 
 The tarballs land in `houserules-packs` next to the repository folder (use an absolute path: pnpm runs `pack` in
@@ -51,7 +51,7 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/andrewgordienko-houserules-0.1.0.tgz ../houserules-packs/eslint-plugin-houserules-0.1.0.tgz
+npm i -D ../houserules-packs/andrewgordienko-houserules-0.2.0.tgz ../houserules-packs/eslint-plugin-houserules-0.2.0.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
