@@ -13,6 +13,10 @@ describe('eslint-plugin-houserules', () => {
       'no-px-font-size',
       'prefer-role-component',
       'restricted-template-syntax',
+      'use-format-role',
+      'require-empty-state',
+      'no-template-arithmetic',
+      'no-hardcoded-plural',
     ]);
     expect(houserules.rules).toBe(plugin.rules);
   });

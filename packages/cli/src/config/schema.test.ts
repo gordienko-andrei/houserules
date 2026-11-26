@@ -79,6 +79,14 @@ describe('parseConfig', () => {
     expect(() => parseConfig({ restrictions: [{ selector: 'BindingPipe', message: 'x', bad: '{{ d | date }}' }] })).toThrow(/restrictions\.0\.good/);
   });
 
+  it('accepts formats only for a role shown with a pipe', () => {
+    const date = { pipe: 'date', usage: "{{ $value | date: 'd MMM y' }}", formats: ['d MMM y', 'shortTime'] };
+    expect(parseConfig({ roles: { date } }).roles['date']?.formats).toEqual(['d MMM y', 'shortTime']);
+    expect(() => parseConfig({ roles: { date: { component: 'app-date', usage: '<app-date [value]="$value" />', formats: ['d MMM'] } } })).toThrow(
+      /roles\.date\.formats: `formats` needs a `pipe`/,
+    );
+  });
+
   it('rejects unknown keys and unknown rules', () => {
     expect(() => parseConfig({ colours: {} })).toThrow(ConfigError);
     expect(() => parseConfig({ rules: { 'no-such-rule': 'off' } })).toThrow(ConfigError);

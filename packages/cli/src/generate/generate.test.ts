@@ -55,7 +55,7 @@ describe('renderAgentsSection', () => {
     const text = renderContext(parseConfig({ preset: 'strict', glueSeparators: ['·', '—'] }));
     expect(text).toContain('with `·`, `—` or arrows');
     expect(text).not.toContain('commas');
-    expect(text).not.toContain('i18n');
+    expect(text).not.toContain('Texts come from the project i18n');
   });
 
   it('resolves presets and explicit overrides consistently', () => {

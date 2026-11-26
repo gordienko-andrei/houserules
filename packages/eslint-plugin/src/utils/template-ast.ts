@@ -19,6 +19,7 @@ export interface BindingPipeNode extends ExpressionNode {
   readonly type: 'BindingPipe';
   readonly name: string;
   readonly exp: ExpressionNode;
+  readonly args: readonly ExpressionNode[];
 }
 
 export interface InterpolationNode extends ExpressionNode {

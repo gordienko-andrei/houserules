@@ -21,6 +21,7 @@ export {
 export { directiveAttributesOf, isPlainNativeMatch, isStandardAttribute } from './config/html-attributes';
 export { resolveRules, type ResolvedRule } from './config/resolve-rules';
 export { RULE_METADATA } from './config/rule-metadata';
+export { FORMAT_ROLES, findFormatRole, type FormatRole } from './config/format-roles';
 export { BUILT_IN_ROLES, findBuiltInRole, isBuiltInRole, type RoleDefinition } from './config/roles';
 export {
   RULE_NAMES,
@@ -40,7 +41,7 @@ export { ruleDocsUrl } from './rule-docs';
 export { formatScanReport } from './scan/format-report';
 export { describeMoneyWays, findMoneyCandidates, type MoneyCandidate } from './scan/money-candidates';
 export { findInlineTemplates, type InlineTemplateSpan } from './scan/declarations';
-export { DEFAULT_RESOURCE_FACTORIES, findResourceMembers } from './scan/resource-members';
+export { DEFAULT_RESOURCE_FACTORIES, findResourceMembers, findStaticMembers } from './scan/resource-members';
 export { scanProject, type ComponentFacts, type PipeFacts, type ScanReport } from './scan/scan-project';
 export {
   endsWithCurrencyMarker,

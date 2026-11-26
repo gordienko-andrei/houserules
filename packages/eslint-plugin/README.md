@@ -16,6 +16,10 @@ Step by step setup: [Installing and using Houserules](https://github.com/gordien
 | [`no-px-font-size`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-px-font-size.md) | Disallow font sizes in fixed `px` in Angular templates | no |
 | [`prefer-role-component`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/prefer-role-component.md) | Require the role component instead of the native elements it replaces | any role with `replaces` |
 | [`restricted-template-syntax`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/restricted-template-syntax.md) | Disallow template syntax listed in the project restrictions | no, needs `restrictions` |
+| [`use-format-role`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/use-format-role.md) | Require dates, numbers and percents to be shown by the role the project maps for them | `date`, `number` or `percent` |
+| [`require-empty-state`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/require-empty-state.md) | Require an empty state for lists of data (`strict` only) | no |
+| [`no-template-arithmetic`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-template-arithmetic.md) | Disallow calculating shown values in templates (`warn`) | no |
+| [`no-hardcoded-plural`](https://github.com/gordienko-andrei/houserules/blob/main/packages/eslint-plugin/docs/rules/no-hardcoded-plural.md) | Disallow a number followed by a fixed English plural noun (`strict` only) | no |
 
 A rule that needs a role is on only when `houserules.config.ts` maps that role to a component or a pipe.
 Requiring a component the project does not have would push an agent to invent one or to work around the check.

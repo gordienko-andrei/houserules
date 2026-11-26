@@ -13,6 +13,10 @@ export const RULE_NAMES = [
   'no-px-font-size',
   'prefer-role-component',
   'restricted-template-syntax',
+  'use-format-role',
+  'require-empty-state',
+  'no-template-arithmetic',
+  'no-hardcoded-plural',
 ] as const;
 
 export type RuleName = (typeof RULE_NAMES)[number];
@@ -40,6 +44,11 @@ const roleMappingSchema = z
       .union([elementSelector, z.array(elementSelector).min(1)])
       .optional()
       .describe('Native elements the component is used instead of, for example `button:not([pButton])`.'),
+    formats: z
+      .array(z.string())
+      .min(1)
+      .optional()
+      .describe("Formats the role pipe may take, without quotes, for example `['d MMM y', 'shortTime']`."),
   })
   .refine((role) => (role.component === undefined) !== (role.pipe === undefined), {
     message: 'Set exactly one of `component` or `pipe`.',
@@ -47,6 +56,10 @@ const roleMappingSchema = z
   .refine((role) => role.replaces === undefined || role.component !== undefined, {
     message: '`replaces` needs a `component`: a pipe cannot replace an element.',
     path: ['replaces'],
+  })
+  .refine((role) => role.formats === undefined || role.pipe !== undefined, {
+    message: '`formats` needs a `pipe`: a component decides its format itself.',
+    path: ['formats'],
   });
 
 const severitySchema = z.enum(['off', 'warn', 'error']);

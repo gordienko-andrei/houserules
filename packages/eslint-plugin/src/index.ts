@@ -3,10 +3,14 @@ import { version } from '../package.json';
 import { createRecommended } from './configs/recommended';
 import { createInlineTemplatesProcessor, INLINE_TEMPLATES_ONLY_PROCESSOR, INLINE_TEMPLATES_PROCESSOR } from './processors/inline-templates';
 import { RULE_NAME as NO_GLUED_FIELDS, noGluedFields } from './rules/no-glued-fields/rule';
+import { RULE_NAME as NO_HARDCODED_PLURAL, noHardcodedPlural } from './rules/no-hardcoded-plural/rule';
 import { RULE_NAME as NO_PX_FONT_SIZE, noPxFontSize } from './rules/no-px-font-size/rule';
 import { RULE_NAME as PREFER_ROLE_COMPONENT, preferRoleComponent } from './rules/prefer-role-component/rule';
+import { RULE_NAME as NO_TEMPLATE_ARITHMETIC, noTemplateArithmetic } from './rules/no-template-arithmetic/rule';
 import { RULE_NAME as REQUIRE_ASYNC_STATES, requireAsyncStates } from './rules/require-async-states/rule';
+import { RULE_NAME as REQUIRE_EMPTY_STATE, requireEmptyState } from './rules/require-empty-state/rule';
 import { RULE_NAME as RESTRICTED_TEMPLATE_SYNTAX, restrictedTemplateSyntax } from './rules/restricted-template-syntax/rule';
+import { RULE_NAME as USE_FORMAT_ROLE, useFormatRole } from './rules/use-format-role/rule';
 import { RULE_NAME as USE_MONEY_COMPONENT, useMoneyComponent } from './rules/use-money-component/rule';
 
 export type { RecommendedOptions } from './configs/recommended';
@@ -18,6 +22,10 @@ const rules = {
   [NO_PX_FONT_SIZE]: noPxFontSize,
   [PREFER_ROLE_COMPONENT]: preferRoleComponent,
   [RESTRICTED_TEMPLATE_SYNTAX]: restrictedTemplateSyntax,
+  [USE_FORMAT_ROLE]: useFormatRole,
+  [REQUIRE_EMPTY_STATE]: requireEmptyState,
+  [NO_TEMPLATE_ARITHMETIC]: noTemplateArithmetic,
+  [NO_HARDCODED_PLURAL]: noHardcodedPlural,
 };
 
 export const plugin = {

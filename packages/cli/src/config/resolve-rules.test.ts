@@ -8,7 +8,35 @@ function ruleNames(input: unknown): string[] {
 
 describe('resolveRules', () => {
   it('turns off the money rule when no money role is mapped', () => {
-    expect(ruleNames({})).toEqual(['no-glued-fields', 'require-async-states', 'no-px-font-size']);
+    expect(ruleNames({})).toEqual([
+      'no-glued-fields',
+      'require-async-states',
+      'no-px-font-size',
+      'require-empty-state',
+      'no-template-arithmetic',
+      'no-hardcoded-plural',
+    ]);
+  });
+
+  it('turns on the format rule with every mapped date, number and percent role', () => {
+    const rules = resolveRules(
+      parseConfig({
+        preset: 'recommended',
+        roles: {
+          date: { pipe: 'date', usage: "{{ $value | date: 'd MMM y' }}", formats: ['d MMM y'] },
+          percent: { component: 'app-percent', usage: '<app-percent [value]="$value" />', files: 'src/ui/percent/**' },
+        },
+      }),
+    );
+    const format = rules.find((rule) => rule.name === 'use-format-role');
+    expect(format).toMatchObject({ severity: 'error', ignoredFiles: ['src/ui/percent/**'] });
+    expect(format?.options).toEqual({
+      roles: [
+        { role: 'date', angularPipe: 'date', defaultFormat: 'mediumDate', formattingMethods: ['toLocaleDateString', 'toLocaleTimeString'], pipe: 'date', usage: "{{ $value | date: 'd MMM y' }}", formats: ['d MMM y'] },
+        { role: 'percent', angularPipe: 'percent', defaultFormat: '1.0-0', formattingMethods: [], component: 'app-percent', usage: '<app-percent [value]="$value" />' },
+      ],
+    });
+    expect(rules.map((rule) => rule.name)).not.toContain('no-hardcoded-plural');
   });
 
   it('passes the money component, usage and currency settings to the money rule', () => {
@@ -95,6 +123,9 @@ describe('resolveRules', () => {
     expect(rules.map((rule) => [rule.name, rule.severity])).toEqual([
       ['no-glued-fields', 'warn'],
       ['require-async-states', 'error'],
+      ['require-empty-state', 'warn'],
+      ['no-template-arithmetic', 'warn'],
+      ['no-hardcoded-plural', 'warn'],
     ]);
   });
 
