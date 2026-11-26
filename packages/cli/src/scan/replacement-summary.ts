@@ -1,4 +1,5 @@
 import { minimatch } from 'minimatch';
+import { findKeepNativeHints, type KeepNativeHint } from './keep-native-hints';
 import type { ReplacedElement, UsageExample } from './template-facts';
 
 export interface DirectiveCount {
@@ -18,6 +19,7 @@ export interface ReplacementSummary {
   readonly skipped: number;
   readonly directives: readonly DirectiveCount[];
   readonly undeclaredAttributes: readonly string[];
+  readonly keepNativeHints: readonly KeepNativeHint[];
 }
 
 const MAX_EXAMPLES = 3;
@@ -60,6 +62,7 @@ export function summarizeReplacements(
       skipped: skipped.length,
       directives,
       undeclaredAttributes: undeclaredAttributes(directives, declaredAttributes),
+      keepNativeHints: findKeepNativeHints(reported),
     };
   });
 }

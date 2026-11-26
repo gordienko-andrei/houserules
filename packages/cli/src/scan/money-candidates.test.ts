@@ -29,7 +29,7 @@ describe('money candidates', () => {
   ]);
 
   it('counts only components that show a single value as ways to show money', () => {
-    expect(describeMoneyWays(scan)).toEqual(['<gf-value> component: 188 uses', '<app-price> component: 1 uses']);
+    expect(describeMoneyWays(scan)).toEqual(['<gf-value> component: 188 uses', '<app-price> component: 1 use']);
   });
 
   it('lists single value components first among all candidates', () => {

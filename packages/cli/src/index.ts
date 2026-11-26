@@ -47,5 +47,6 @@ export {
   findAmountsNextToCurrencyCode,
   findExpressionsNextToCurrency,
   isCurrencyMarker,
+  isCurrencyNamed,
   startsWithCurrencyMarker,
 } from './text/currency-text';

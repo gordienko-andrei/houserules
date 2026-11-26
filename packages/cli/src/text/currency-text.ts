@@ -72,6 +72,25 @@ export function isAmountExpression(expression: string): boolean {
   return NUMBER_PIPE.test(expression) || nameTokens(expression).some((token) => AMOUNT_TOKENS.has(token));
 }
 
+// Common ISO 4217 codes. Codes that are also English words (`try`, `all`, `top`, `cup`) are left out.
+const CURRENCY_CODE_TOKENS = new Set([
+  'usd', 'eur', 'gbp', 'rub', 'jpy', 'cny', 'chf', 'cad', 'aud', 'nzd', 'inr', 'uah', 'kzt', 'byn', 'pln', 'czk', 'huf',
+  'sek', 'nok', 'dkk', 'brl', 'mxn', 'krw', 'sgd', 'hkd', 'ils', 'aed', 'sar', 'zar',
+]);
+const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
+const MONEY_PIPE = /\|\s*currency\b/;
+
+// `salaryFloorGbp`, `price_usd`: the last word of a name is a currency code. A hint for `scan`, never a lint error.
+export function isCurrencyNamed(expression: string, currencyWords: readonly string[] = []): boolean {
+  if (MONEY_PIPE.test(expression)) return false;
+  const codes = new Set([...CURRENCY_CODE_TOKENS, ...currencyWords.map((word) => word.toLowerCase())]);
+  return (expression.match(IDENTIFIER) ?? []).some((name) => {
+    const tokens = nameTokens(name);
+    const last = tokens.at(-1);
+    return tokens.length > 1 && last !== undefined && codes.has(last);
+  });
+}
+
 export function findAmountsNextToCurrencyCode(strings: readonly string[], expressions: readonly string[]): number[] {
   const indexes = new Set<number>();
   expressions.forEach((expression, index) => {

@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import * as templateParser from '@angular-eslint/template-parser';
 import type { ESLint, Linter } from 'eslint';
 import {
@@ -8,7 +10,7 @@ import {
   type HouserulesConfigInput,
   type ResolvedRule,
 } from '@andrewgordienko/houserules';
-import { INLINE_TEMPLATES_PROCESSOR } from '../processors/inline-templates';
+import { INLINE_TEMPLATES_ONLY_PROCESSOR, INLINE_TEMPLATES_PROCESSOR } from '../processors/inline-templates';
 
 export interface RecommendedOptions {
   readonly cwd?: string;
@@ -21,6 +23,7 @@ export interface RecommendedOptions {
 const PLUGIN_PREFIX = 'houserules';
 const DEFAULT_FILES = ['**/*.html'];
 const DEFAULT_INLINE_TEMPLATE_FILES = ['**/*.ts'];
+const TYPESCRIPT_PARSERS = ['typescript-eslint', '@typescript-eslint/parser'];
 
 function ruleId(rule: ResolvedRule): string {
   return `${PLUGIN_PREFIX}/${rule.name}`;
@@ -40,14 +43,28 @@ function ignoreBlocks(rules: readonly ResolvedRule[]): Linter.Config[] {
     }));
 }
 
+// A plain lookup of `node_modules` keeps the answer independent of how ESLint itself was loaded.
+function isInstalled(cwd: string, name: string): boolean {
+  for (let directory = resolve(cwd); ; directory = dirname(directory)) {
+    if (existsSync(join(directory, 'node_modules', name, 'package.json'))) return true;
+    if (dirname(directory) === directory) return false;
+  }
+}
+
+// Without a TypeScript parser ESLint would read the `.ts` text with espree and fail on every type annotation.
+export function lintsTypeScript(cwd: string): boolean {
+  return TYPESCRIPT_PARSERS.some((name) => isInstalled(cwd, name));
+}
+
 function inlineTemplateBlock(plugin: ESLint.Plugin, options: RecommendedOptions): Linter.Config[] {
   if (options.inlineTemplates !== true) return [];
+  const processor = lintsTypeScript(options.cwd ?? process.cwd()) ? INLINE_TEMPLATES_PROCESSOR : INLINE_TEMPLATES_ONLY_PROCESSOR;
   return [
     {
       name: `${PLUGIN_PREFIX}/inline-templates`,
       files: [...(options.inlineTemplateFiles ?? DEFAULT_INLINE_TEMPLATE_FILES)],
       plugins: { [PLUGIN_PREFIX]: plugin },
-      processor: `${PLUGIN_PREFIX}/${INLINE_TEMPLATES_PROCESSOR}`,
+      processor: `${PLUGIN_PREFIX}/${processor}`,
     },
   ];
 }

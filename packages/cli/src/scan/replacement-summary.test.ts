@@ -3,7 +3,7 @@ import { summarizeReplacements } from './replacement-summary';
 import type { ReplacedElement } from './template-facts';
 
 function replaced(file: string, directives: string[] = []): ReplacedElement {
-  return { selector: 'button', directives, example: { file, line: 1, text: '<button>' } };
+  return { selector: 'button', directives, example: { file, line: 1, text: '<button>' }, classes: [] };
 }
 
 describe('summarizeReplacements', () => {
@@ -24,6 +24,7 @@ describe('summarizeReplacements', () => {
           { name: 'mat-tab-link', count: 1 },
         ],
         undeclaredAttributes: [],
+        keepNativeHints: [],
       },
     ]);
   });

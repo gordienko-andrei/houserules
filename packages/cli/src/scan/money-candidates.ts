@@ -61,16 +61,24 @@ export function findMoneyCandidates(report: ScanReport): MoneyCandidate[] {
   return candidates.sort((left, right) => Number(right.showsSingleValue) - Number(left.showsSingleValue) || right.count - left.count);
 }
 
+function counted(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
 export function describeMoneyWays(report: ScanReport): string[] {
   const ways = findMoneyCandidates(report)
     .filter((candidate) => candidate.showsSingleValue && candidate.count > 0)
     .map((candidate) =>
       candidate.kind === 'component'
-        ? `<${candidate.name}> component: ${candidate.count} uses`
-        : `${candidate.name} pipe: ${candidate.count} uses`,
+        ? `<${candidate.name}> component: ${counted(candidate.count, 'use')}`
+        : `${candidate.name} pipe: ${counted(candidate.count, 'use')}`,
     );
   if (report.handFormattedMoney.count > 0) {
-    ways.push(`by hand next to a currency sign or code: ${report.handFormattedMoney.count} places`);
+    ways.push(`by hand next to a currency sign or code: ${counted(report.handFormattedMoney.count, 'place')}`);
+  }
+  const named = report.currencyNamedValues?.count ?? 0;
+  if (named > 0) {
+    ways.push(`as a plain value named with a currency code (check them): ${counted(named, 'place')}`);
   }
   return ways;
 }

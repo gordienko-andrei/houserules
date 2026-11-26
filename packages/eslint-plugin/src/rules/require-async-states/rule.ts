@@ -95,9 +95,10 @@ export const requireAsyncStates = createRule<[RequireAsyncStatesOptions], 'missi
     const resourceMembers = findResourceMembers(context.physicalFilename, factories);
     const statesByResource = new Map<string, ResourceStates>();
 
-    // With the component file at hand only its resource members count, so `form.value()` of Signal Forms is left alone.
+    // Only members the component creates as resources count, so `form.value()` of Signal Forms is left alone.
+    // Without the component file nothing can be confirmed, and the rule stays silent.
     function isResource(path: string): boolean {
-      return resourceMembers === undefined || resourceMembers.has(path.split('.')[0] ?? '');
+      return resourceMembers !== undefined && resourceMembers.has(path.split('.')[0] ?? '');
     }
     const firstValueCalls = new Map<string, CallNode>();
 

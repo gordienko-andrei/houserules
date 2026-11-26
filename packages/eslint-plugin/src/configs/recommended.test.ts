@@ -108,6 +108,15 @@ describe('configs.recommended', () => {
     expect(houserules.configs.recommended({ config: {} }).some((config) => config.processor !== undefined)).toBe(false);
   });
 
+  it('checks inline templates without parsing errors in a project that does not lint TypeScript', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'houserules-eslint-'));
+    directories.push(directory);
+    const configs = houserules.configs.recommended({ config: {}, cwd: directory, inlineTemplates: true });
+    const source = ['@Component({', '  template: `<p>{{ a }} · {{ b }}</p>`,', '})', 'export class X { readonly a: string = ""; }'].join('\n');
+    const messages = new Linter({ configType: 'flat' }).verify(source, configs, { filename: 'src/app/x.component.ts', filterCodeBlock: () => true });
+    expect(messages.map((message) => message.ruleId)).toEqual(['houserules/no-glued-fields']);
+  });
+
   it('leaves the rules out with a warning when there is no config', () => {
     const directory = mkdtempSync(join(tmpdir(), 'houserules-eslint-'));
     directories.push(directory);

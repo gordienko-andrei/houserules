@@ -2,8 +2,7 @@ import type { Linter } from 'eslint';
 import { findInlineTemplates, type InlineTemplateSpan } from '@andrewgordienko/houserules';
 
 export const INLINE_TEMPLATES_PROCESSOR = 'inline-templates';
-
-const templatesByFile = new Map<string, InlineTemplateSpan[]>();
+export const INLINE_TEMPLATES_ONLY_PROCESSOR = 'inline-templates-only';
 
 function shiftPosition(template: InlineTemplateSpan, line: number, column: number): { line: number; column: number } {
   return line === 1 ? { line: template.line, column: template.column + column - 1 } : { line: template.line + line - 1, column };
@@ -27,25 +26,30 @@ function shiftMessage(message: Linter.LintMessage, template: InlineTemplateSpan)
   };
 }
 
-// The `.ts` text goes through unchanged as the first block, so the project's own TypeScript rules keep working.
-export const inlineTemplatesProcessor: Linter.Processor = {
-  meta: { name: INLINE_TEMPLATES_PROCESSOR },
-  supportsAutofix: true,
-  preprocess(text, filename) {
-    const templates = findInlineTemplates(filename, text);
-    templatesByFile.set(filename, templates);
-    return [text, ...templates.map((template, index) => ({ text: template.text, filename: `${index}_inline-template.component.html` }))];
-  },
-  postprocess(messageLists, filename) {
-    const templates = templatesByFile.get(filename) ?? [];
-    templatesByFile.delete(filename);
-    const [own = [], ...templateMessages] = messageLists;
-    return [
-      ...own,
-      ...templateMessages.flatMap((messages, index) => {
-        const template = templates[index];
-        return template === undefined ? [] : messages.map((message) => shiftMessage(message, template));
-      }),
-    ];
-  },
-};
+// With `keepsSource` the `.ts` text goes through unchanged as the first block, so the project's TypeScript rules keep
+// working. A project without a TypeScript parser cannot lint that text, so only the templates are handed on.
+export function createInlineTemplatesProcessor(keepsSource: boolean): Linter.Processor {
+  const templatesByFile = new Map<string, InlineTemplateSpan[]>();
+  return {
+    meta: { name: keepsSource ? INLINE_TEMPLATES_PROCESSOR : INLINE_TEMPLATES_ONLY_PROCESSOR },
+    supportsAutofix: true,
+    preprocess(text, filename) {
+      const templates = findInlineTemplates(filename, text);
+      templatesByFile.set(filename, templates);
+      const blocks = templates.map((template, index) => ({ text: template.text, filename: `${index}_inline-template.component.html` }));
+      return keepsSource ? [text, ...blocks] : blocks;
+    },
+    postprocess(messageLists, filename) {
+      const templates = templatesByFile.get(filename) ?? [];
+      templatesByFile.delete(filename);
+      const [own, templateMessages] = keepsSource ? [messageLists[0] ?? [], messageLists.slice(1)] : [[], messageLists];
+      return [
+        ...own,
+        ...templateMessages.flatMap((messages, index) => {
+          const template = templates[index];
+          return template === undefined ? [] : messages.map((message) => shiftMessage(message, template));
+        }),
+      ];
+    },
+  };
+}
