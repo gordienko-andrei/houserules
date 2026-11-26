@@ -1,0 +1,45 @@
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check that the tag matches both package versions
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          for dir in packages/cli packages/eslint-plugin; do
+            actual="$(node -p "require('./$dir/package.json').version")"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::$dir is $actual, the tag is $GITHUB_REF_NAME"
+              exit 1
+            fi
+          done
+
+      - run: pnpm test
+
+      # pnpm, not npm: it replaces the workspace: version of the CLI in the plugin's peer dependencies.
+      - run: pnpm --filter @andrewgordienko/houserules --filter eslint-plugin-houserules publish --access public --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

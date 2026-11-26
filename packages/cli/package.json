@@ -1,6 +1,6 @@
 {
   "name": "@andrewgordienko/houserules",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turns an Angular design system into context and checks for AI agents",
   "keywords": [
     "angular",
