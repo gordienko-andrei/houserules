@@ -57,6 +57,46 @@ function componentFileFor(templateFile: string): string | undefined {
     .find((path) => TEMPLATE_URL.exec(readFileSync(path, 'utf8'))?.[1]?.endsWith(templateName) === true);
 }
 
+const CONSTANT_NAME = /^[A-Z][A-Z0-9_]*$/;
+
+function unwrapAssertion(expression: ts.Expression): ts.Expression {
+  let current = expression;
+  while (ts.isAsExpression(current) || ts.isSatisfiesExpression(current) || ts.isParenthesizedExpression(current)) current = current.expression;
+  return current;
+}
+
+// `readonly tabs = ['a', 'b'] as const` or `readonly tabs = TABS` never changes, so it needs no empty state.
+function isStaticInitializer(initializer: ts.Expression | undefined): boolean {
+  if (initializer === undefined) return false;
+  const value = unwrapAssertion(initializer);
+  return ts.isArrayLiteralExpression(value) || ts.isObjectLiteralExpression(value) || (ts.isIdentifier(value) && CONSTANT_NAME.test(value.text));
+}
+
+const staticCache = new Map<string, { readonly modified: number; readonly members: ReadonlySet<string> }>();
+
+function parseStaticMembers(text: string, file: string): Set<string> {
+  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+  const members = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isPropertyDeclaration(node) && ts.isIdentifier(node.name) && isStaticInitializer(node.initializer)) members.add(node.name.text);
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return members;
+}
+
+// Members of the component initialised with a fixed list, or undefined when the component file is not found.
+export function findStaticMembers(templateFile: string): ReadonlySet<string> | undefined {
+  const componentFile = componentFileFor(templateFile);
+  if (componentFile === undefined) return undefined;
+  const modified = statSync(componentFile).mtimeMs;
+  const cached = staticCache.get(componentFile);
+  if (cached !== undefined && cached.modified === modified) return cached.members;
+  const members = parseStaticMembers(readFileSync(componentFile, 'utf8'), componentFile);
+  staticCache.set(componentFile, { modified, members });
+  return members;
+}
+
 // Members of the component that hold an Angular resource, or undefined when the component file is not found.
 export function findResourceMembers(
   templateFile: string,

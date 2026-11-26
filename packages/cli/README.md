@@ -55,7 +55,7 @@ export default defineConfig({
 
 | Field | Description |
 | --- | --- |
-| `roles` | Role name → `component` (a custom element `app-money` or a directive on an element `button[mat-flat-button]`) or `pipe`, `usage` with `$value` in place of the shown expression, optional `files` of the component itself, `replaces` with native element selectors the component is used instead of (`button:not([pButton])`, `input[type=checkbox]`) and `description` (required for custom roles). Built-in roles: money, status, metric, issue, comparison, tip, steps, code, action. |
+| `roles` | Role name → `component` (a custom element `app-money` or a directive on an element `button[mat-flat-button]`) or `pipe`, `usage` with `$value` in place of the shown expression, optional `files` of the component itself, `replaces` with native element selectors the component is used instead of (`button:not([pButton])`, `input[type=checkbox]`) and `description` (required for custom roles). `formats` lists the allowed formats of a `date`, `number` or `percent` role shown with the Angular pipe. Built-in roles: money, date, number, percent, status, metric, issue, comparison, tip, steps, code, action. |
 | `currencyWords` | Currency codes or words that count as a currency sign. |
 | `glueSeparators` | Text that glues two values for `no-glued-fields`. Default `['•', '·', '|', ',', ';']`; `,` and `;` are allowed in sentences. |
 | `nonComponentAttributes` | Inputs and helper directives that leave a native element native (`iconStart`, `appTooltip`), so `replaces` still reports it. |

@@ -51,7 +51,7 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/andrewgordienko-houserules-0.2.1.tgz ../houserules-packs/eslint-plugin-houserules-0.2.1.tgz
+npm i -D ../houserules-packs/andrewgordienko-houserules-0.3.0.tgz ../houserules-packs/eslint-plugin-houserules-0.3.0.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
@@ -67,7 +67,9 @@ npx houserules init
 `init` creates:
 
 New configs select the `recommended` preset. It reports resource-state findings as warnings and leaves
-`no-glued-fields` off. Select `preset: 'strict'` to enable all applicable rules as errors. Existing configs
+`no-glued-fields`, `require-empty-state` and `no-hardcoded-plural` off. Select `preset: 'strict'` to enable all
+applicable rules as errors; `require-empty-state` and `no-hardcoded-plural` are warnings there, and
+`no-template-arithmetic` is a warning in both presets. Existing configs
 without a preset retain their previous defaults. Explicit `rules` settings override the preset.
 The separate `@andrewgordienko/houserules/stylelint` configuration controls stylesheet checks independently.
 
@@ -93,8 +95,8 @@ config, up to the git root, and add `--cwd frontend` to every `npx houserules` c
 
 ## 3. Map the roles
 
-A role is a kind of data with one way to show it. Built-in roles: `money`, `status`, `metric`, `issue`,
-`comparison`, `tip`, `steps`, `code`, `action`. Map only the roles your project has a component or a pipe for.
+A role is a kind of data with one way to show it. Built-in roles: `money`, `date`, `number`, `percent`, `status`,
+`metric`, `issue`, `comparison`, `tip`, `steps`, `code`, `action`. Map only the roles your project has a component or a pipe for.
 A role you leave out keeps its rule off: Houserules never asks for a component you do not have.
 
 ### With an agent (recommended)
@@ -170,6 +172,10 @@ export default defineConfig({
   skipped, so `replaces: 'button'` is usually enough. Native elements kept on purpose are excluded by class or by
   context: `button:not(.filter-pill):not(th > *)`. `validate` names repeated groups among the reported elements
   (“9 inside <th>, 12 with class filter-pill”) with the `:not(...)` that would keep them.
+- `formats`: for a `date`, `number` or `percent` role shown with the Angular pipe itself, the formats the product
+  uses, without quotes: `{ pipe: 'date', usage: "{{ $value | date: 'd MMM y' }}", formats: ['d MMM y', 'shortTime'] }`.
+  [`use-format-role`](../packages/eslint-plugin/docs/rules/use-format-role.md) reports other formats. A role shown
+  with a component makes the rule report the Angular pipe itself, as the money rule does with `currency`.
 - `nonComponentAttributes`: inputs and helper directives that leave a native element native, for example
   `['iconStart', 'appTooltip']`. Without them `<button appTooltip>` counts as a directive element and is skipped.
   `validate` names the skipped attributes that no directive of the project or its libraries selects on.
@@ -327,6 +333,10 @@ typical cases, so an agent can fix the template without asking.
 | [`no-glued-fields`](../packages/eslint-plugin/docs/rules/no-glued-fields.md) | Values glued into one text with `·`, `•`, `\|`, commas or arrows, also inside string literals | no |
 | [`require-async-states`](../packages/eslint-plugin/docs/rules/require-async-states.md) | Resource data without loading, error and empty states | no |
 | [`no-px-font-size`](../packages/eslint-plugin/docs/rules/no-px-font-size.md) | Font sizes in `px` in `style`, style bindings and Tailwind classes such as `text-[12px]` | no |
+| [`use-format-role`](../packages/eslint-plugin/docs/rules/use-format-role.md) | The Angular `date`, `number`, `percent` pipes, formats outside the role `formats`, `toFixed()` | `date`, `number` or `percent` |
+| [`no-template-arithmetic`](../packages/eslint-plugin/docs/rules/no-template-arithmetic.md) | Shown values calculated in the template, as a warning | no |
+| [`require-empty-state`](../packages/eslint-plugin/docs/rules/require-empty-state.md) | A list of data without `@empty` or a length check; `strict` only | no |
+| [`no-hardcoded-plural`](../packages/eslint-plugin/docs/rules/no-hardcoded-plural.md) | `{{ n }} items`, which reads "1 items"; English, `strict` only | no |
 
 ## 6. Turn on stylelint
 

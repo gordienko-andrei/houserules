@@ -168,6 +168,10 @@ function gapSpan(start: number | undefined, end: number | undefined): AbsoluteSo
   return start === undefined || end === undefined || end < start ? undefined : { start, end };
 }
 
+export function isStringConcatenation(node: ExpressionNode): boolean {
+  return isConcatenation(unwrap(node));
+}
+
 export function flattenInterpolation(node: InterpolationNode): FlatText {
   const builder = new FlatTextBuilder();
   node.strings.forEach((text, index) => {

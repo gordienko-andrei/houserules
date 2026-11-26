@@ -9,6 +9,18 @@ export const BUILT_IN_ROLES: readonly RoleDefinition[] = [
     description: 'An amount of money. Currency, rounding, sign and colour are decided by one component or pipe.',
   },
   {
+    name: 'date',
+    description: 'A date or time. One pipe or component with the formats the product uses, never a new format per screen.',
+  },
+  {
+    name: 'number',
+    description: 'A plain number: a count, a score, a measure. Grouping and decimals are decided in one place.',
+  },
+  {
+    name: 'percent',
+    description: 'A share or a rate shown as a percentage, with one rule for decimals.',
+  },
+  {
     name: 'status',
     description:
       'A separate tag with a tone (neutral, info, warning, error, success). The tone follows the real business state.',

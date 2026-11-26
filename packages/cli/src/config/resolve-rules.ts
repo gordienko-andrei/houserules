@@ -1,4 +1,5 @@
 import type { HouserulesConfig, RoleMapping, RuleName, RuleSetting, RuleSeverity } from './schema';
+import { FORMAT_ROLES } from './format-roles';
 import { RULE_METADATA } from './rule-metadata';
 
 export interface ResolvedRule {
@@ -52,6 +53,18 @@ function replacementRule(config: HouserulesConfig): Omit<ResolvedRule, 'severity
   return [{ name: 'prefer-role-component', options: { replacements, ...nonComponentAttributes }, ignoredFiles }];
 }
 
+function formatRule(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
+  const roles = FORMAT_ROLES.flatMap((format) => {
+    const mapping = config.roles[format.role];
+    if (mapping === undefined) return [];
+    const target = mapping.component === undefined ? { pipe: mapping.pipe } : { component: mapping.component };
+    return [{ ...format, ...target, usage: mapping.usage, ...(mapping.formats === undefined ? {} : { formats: mapping.formats }) }];
+  });
+  if (roles.length === 0) return [];
+  const ignoredFiles = [...new Set(FORMAT_ROLES.flatMap((format) => asList(config.roles[format.role]?.files)))];
+  return [{ name: 'use-format-role', options: { roles }, ignoredFiles }];
+}
+
 function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
   const money = config.roles['money'];
   const roleBound: Omit<ResolvedRule, 'severity'>[] =
@@ -63,6 +76,10 @@ function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'
     { name: 'no-glued-fields', options: glueOptions(config), ignoredFiles: [] },
     { name: 'require-async-states', ignoredFiles: [] },
     { name: 'no-px-font-size', ignoredFiles: [] },
+    ...formatRule(config),
+    { name: 'require-empty-state', ignoredFiles: [] },
+    { name: 'no-template-arithmetic', ignoredFiles: [] },
+    { name: 'no-hardcoded-plural', ignoredFiles: [] },
     ...replacementRule(config),
     ...(config.restrictions.length === 0
       ? []

@@ -148,6 +148,10 @@ describe('validateProject', () => {
       'ok rule houserules/no-px-font-size is on (error).',
       'skipped rule houserules/prefer-role-component is off.',
       'skipped rule houserules/restricted-template-syntax is off.',
+      'skipped rule houserules/use-format-role is off.',
+      'ok rule houserules/require-empty-state is on (warn).',
+      'ok rule houserules/no-template-arithmetic is on (warn).',
+      'ok rule houserules/no-hardcoded-plural is on (warn).',
     ]);
   }, LINT_IMPORT_TIMEOUT_MS);
 });

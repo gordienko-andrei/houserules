@@ -54,6 +54,8 @@ const SCREEN_RULES: readonly ScreenRule[] = [
   { text: () => '- Tone follows the real state: green only after success is a fact, never "rows are valid" before the operation is applied.' },
   { text: () => '- A fix hint stands next to the error it belongs to, and only if the backend provides it.' },
   { text: () => '- Async data shows loading, error and empty states.', rule: 'require-async-states' },
+  { text: () => '- A list of data has an empty state: an `@empty` block, or an `@else` next to a check of its length.', rule: 'require-empty-state' },
+  { text: () => '- A count never stands before a fixed plural noun (`{{ n }} items` reads "1 items"): use ICU or the `i18nPlural` pipe.', rule: 'no-hardcoded-plural' },
   { text: () => '- Font sizes use `rem` or project typography classes, never fixed `px`.', rule: 'no-px-font-size' },
 ];
 

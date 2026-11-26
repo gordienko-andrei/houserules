@@ -32,4 +32,20 @@ export const RULE_METADATA: Readonly<Record<RuleName, RuleMetadata>> = {
     recommended: 'error', strict: 'error',
     summary: 'reports template nodes matched by the project `restrictions`; each message says what to use instead',
   },
+  'use-format-role': {
+    recommended: 'error', strict: 'error',
+    summary: 'reports the Angular `date`, `number` and `percent` pipes and formatting methods where a `date`, `number` or `percent` role is mapped, and formats outside the role `formats`',
+  },
+  'require-empty-state': {
+    recommended: 'off', strict: 'warn',
+    summary: 'reports a top-level `@for` over data without an `@empty` block or an enclosing length check',
+  },
+  'no-template-arithmetic': {
+    recommended: 'warn', strict: 'warn',
+    summary: 'reports arithmetic on data in interpolations and property bindings; take the value from the backend or a computed signal',
+  },
+  'no-hardcoded-plural': {
+    recommended: 'off', strict: 'warn',
+    summary: 'reports a number followed by an English plural noun, such as `{{ count }} items`; use ICU or the `i18nPlural` pipe',
+  },
 };

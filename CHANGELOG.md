@@ -3,6 +3,31 @@
 `@andrewgordienko/houserules` and `eslint-plugin-houserules` are released together with the same version.
 Install both at that version.
 
+## 0.3.0
+
+### New rules
+
+- `use-format-role`: built-in `date`, `number` and `percent` roles. A role shown with a component or another pipe
+  makes the rule report the Angular `date`, `number` or `percent` pipe, with the ready call in the message. A role
+  shown with the Angular pipe itself lists `formats`, and the rule reports any other format. `toFixed()`,
+  `toPrecision()`, `toLocaleDateString()` and `toLocaleTimeString()` in templates are reported too.
+- `no-template-arithmetic` (warning): `+ - * / %` on data in interpolations and property bindings. String
+  concatenation, event handlers, conditions, flags, style bindings and `$index + 1` are left alone.
+- `require-empty-state` (`strict` only, warning): a top-level `@for` over data without `@empty` or an enclosing
+  length check. Fixed lists of the component (`readonly tabs = [...]`) are skipped.
+- `no-hardcoded-plural` (`strict` only, warning): `{{ n }} items` and `{{ n }} new messages`, which read "1 items".
+  English only; part of a whole (`{{ n }} of your bullets`) and values that choose their own form are allowed.
+
+### Config
+
+- Role field `formats` for a `date`, `number` or `percent` role shown with a pipe.
+- `context` tells agents about empty states and plural forms while those rules are on.
+
+### Changed
+
+- Configs without a preset, like `strict`, now run `require-empty-state`, `no-template-arithmetic` and
+  `no-hardcoded-plural` as warnings.
+
 ## 0.2.1
 
 ### Changed
