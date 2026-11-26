@@ -1,13 +1,18 @@
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
 import { createRule } from '../../utils/create-rule';
+import { flattenExpression, flattenInterpolation, type FlatText } from '../../utils/flat-text';
 import {
   isBindingPipe,
+  isInterpolation,
   isInterpolationInTextContent,
   type BindingPipeNode,
+  type BoundAttributeNode,
+  type ElementNode,
   type ExpressionNode,
   type InterpolationNode,
 } from '../../utils/template-ast';
 import { describeElementSelector, findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '@andrewgordienko/houserules';
+import { valuesNextToCurrencyElement } from './currency-element';
 import { normalizeExpression, renderUsage } from './usage';
 
 export const RULE_NAME = 'use-money-component';
@@ -28,6 +33,7 @@ interface UsageSuggestion {
 }
 
 const DEFAULT_PIPES = ['currency'];
+const FORMATTING_PIPES = new Set(['number', 'decimal', 'percent']);
 const DEFAULT_CURRENCY_WORDS: readonly string[] = [];
 const GENERIC_TARGET = "the project's money component";
 
@@ -102,24 +108,44 @@ export const useMoneyComponent = createRule<[UseMoneyComponentOptions], MessageI
     const unwrappedPipes = new Set(options.pipe === undefined ? moneyPipes : [...moneyPipes, options.pipe]);
     const currencyWords = options.currencyWords ?? DEFAULT_CURRENCY_WORDS;
 
-    function moneyExpressionIndexes(node: InterpolationNode): number[] {
-      const expressions = node.expressions.map((expression) => sourceText.slice(expression.sourceSpan.start, expression.sourceSpan.end));
+    function moneyValues(flat: FlatText): ExpressionNode[] {
+      const expressions = flat.values.map((value) => sourceText.slice(value.sourceSpan.start, value.sourceSpan.end));
       const indexes = new Set([
-        ...findExpressionsNextToCurrency(node.strings, currencyWords),
-        ...findAmountsNextToCurrencyCode(node.strings, expressions),
+        ...findExpressionsNextToCurrency(flat.strings, currencyWords),
+        ...findAmountsNextToCurrencyCode(flat.strings, expressions),
       ]);
-      return [...indexes].sort((left, right) => left - right);
+      return [...indexes]
+        .sort((left, right) => left - right)
+        .flatMap((index) => flat.values[index] ?? [])
+        .filter((value) => value.type !== 'LiteralPrimitive');
+    }
+
+    // The money component formats the amount itself, so `number` or `currency` around it would hand it a string.
+    function amountOf(expression: ExpressionNode): ExpressionNode {
+      let current = expression;
+      while (isBindingPipe(current) && (unwrappedPipes.has(current.name) || FORMATTING_PIPES.has(current.name))) {
+        current = current.exp;
+      }
+      return current;
     }
 
     function suggestUsage(expression: ExpressionNode): UsageSuggestion | undefined {
       if (options.usage === undefined) {
         return undefined;
       }
-      const valueNode =
-        isBindingPipe(expression) && unwrappedPipes.has(expression.name) ? expression.exp : expression;
+      const valueNode = amountOf(expression);
       const valueText = sourceText.slice(valueNode.sourceSpan.start, valueNode.sourceSpan.end);
       const usage = renderUsage(options.usage, valueText);
       return usage === undefined ? undefined : { value: normalizeExpression(valueText), usage };
+    }
+
+    function reportHandFormatted(value: ExpressionNode, canSuggest: boolean): void {
+      const suggestion = canSuggest ? suggestUsage(value) : undefined;
+      if (suggestion === undefined) {
+        context.report({ loc: value.loc, messageId: 'moneyNextToCurrency', data: { target } });
+        return;
+      }
+      context.report({ loc: value.loc, messageId: 'moneyNextToCurrencyUsage', data: { ...suggestion } });
     }
 
     return {
@@ -137,15 +163,22 @@ export const useMoneyComponent = createRule<[UseMoneyComponentOptions], MessageI
       },
       Interpolation(node: InterpolationNode) {
         const isTextContent = isInterpolationInTextContent(node);
-        for (const index of moneyExpressionIndexes(node)) {
-          const expression = node.expressions[index];
-          const suggestion = isTextContent && expression !== undefined ? suggestUsage(expression) : undefined;
-          const loc = expression?.loc ?? node.loc;
-          if (suggestion === undefined) {
-            context.report({ loc, messageId: 'moneyNextToCurrency', data: { target } });
-            continue;
-          }
-          context.report({ loc, messageId: 'moneyNextToCurrencyUsage', data: { ...suggestion } });
+        for (const value of moneyValues(flattenInterpolation(node))) {
+          reportHandFormatted(value, isTextContent);
+        }
+      },
+      BoundAttribute(node: BoundAttributeNode) {
+        const expression = node.value.ast;
+        if (expression === undefined || isInterpolation(expression)) {
+          return;
+        }
+        for (const value of moneyValues(flattenExpression(expression))) {
+          reportHandFormatted(value, false);
+        }
+      },
+      Element(node: ElementNode) {
+        for (const value of valuesNextToCurrencyElement(node, currencyWords)) {
+          reportHandFormatted(value, true);
         }
       },
     };

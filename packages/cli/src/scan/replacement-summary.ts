@@ -17,6 +17,7 @@ export interface ReplacementSummary {
   readonly examples: readonly UsageExample[];
   readonly skipped: number;
   readonly directives: readonly DirectiveCount[];
+  readonly undeclaredAttributes: readonly string[];
 }
 
 const MAX_EXAMPLES = 3;
@@ -36,17 +37,29 @@ function isIgnored(file: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) => minimatch(file, pattern, { dot: true }));
 }
 
-export function summarizeReplacements(targets: readonly ReplacementTarget[], elements: readonly ReplacedElement[]): ReplacementSummary[] {
+// Attributes that no directive of the project or its libraries selects on are inputs, so they should not skip an element.
+function undeclaredAttributes(directives: readonly DirectiveCount[], declared: ReadonlySet<string> | undefined): string[] {
+  if (declared === undefined || declared.size === 0) return [];
+  return directives.map((directive) => directive.name).filter((name) => !declared.has(name.toLowerCase()));
+}
+
+export function summarizeReplacements(
+  targets: readonly ReplacementTarget[],
+  elements: readonly ReplacedElement[],
+  declaredAttributes?: ReadonlySet<string>,
+): ReplacementSummary[] {
   return targets.map(({ selector, ignoredFiles = [] }) => {
     const matched = elements.filter((element) => element.selector === selector && !isIgnored(element.example.file, ignoredFiles));
     const reported = matched.filter((element) => element.directives.length === 0);
     const skipped = matched.filter((element) => element.directives.length > 0);
+    const directives = countDirectives(skipped);
     return {
       selector,
       reported: reported.length,
       examples: reported.slice(0, MAX_EXAMPLES).map((element) => element.example),
       skipped: skipped.length,
-      directives: countDirectives(skipped),
+      directives,
+      undeclaredAttributes: undeclaredAttributes(directives, declaredAttributes),
     };
   });
 }

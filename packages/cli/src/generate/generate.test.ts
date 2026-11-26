@@ -51,6 +51,13 @@ describe('renderAgentsSection', () => {
     expect(text).toContain('(warn)');
   });
 
+  it('names the configured glue separators and leaves out guidance with no check behind it', () => {
+    const text = renderContext(parseConfig({ preset: 'strict', glueSeparators: ['·', '—'] }));
+    expect(text).toContain('with `·`, `—` or arrows');
+    expect(text).not.toContain('commas');
+    expect(text).not.toContain('i18n');
+  });
+
   it('resolves presets and explicit overrides consistently', () => {
     const severities = (input: Parameters<typeof parseConfig>[0]) =>
       Object.fromEntries(resolveRules(parseConfig(input)).map((rule) => [rule.name, rule.severity]));

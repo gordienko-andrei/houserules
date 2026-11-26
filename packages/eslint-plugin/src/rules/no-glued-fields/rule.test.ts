@@ -54,11 +54,23 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
     '<h2 class="sr-only">{{ list.title }}, {{ list.items.length }} items</h2>',
     '<span class="cdk-visually-hidden"><b>{{ a }} · {{ b }}</b></span>',
     '<li>Delete it: Settings → Account → Delete account removes it for good.</li>',
+    "<p>{{ note ? ' — ' + note : '' }}</p>",
+    "<p>{{ label }}{{ note ? ' — ' + note : '' }}</p>",
+    "<p>{{ ok ? 'Yes' : 'No' }} · </p>",
+    "<p>{{ first + ' ' + last }}</p>",
+    "<p>{{ tags.join(', ') }}</p>",
+    "<button>Gaps ({{ match.gaps.length }}{{ match.critical ? ', including required points' : '' }})</button>",
+    `<p>
+  @for (tag of tags; track tag; let last = $last) {
+    {{ tag }}{{ last ? '' : ', ' }}
+  }
+</p>`,
+    { code: '<p>{{ city }}, {{ country }}</p>', options: [{ separators: ['·'] }] },
   ],
   invalid: [
     {
       code: '<p>{{ user.name }} •{{ user.role }}•магазин «{{ shop.name }}»•задолжность {{ debt }} руб•</p>',
-      errors: [{ messageId: 'separator', data: { marker: '•', hint: '' }, line: 1, column: 7 }],
+      errors: [{ messageId: 'separator', data: { marker: '•', hint: '' }, line: 1, column: 20, endColumn: 21 }],
     },
     {
       code: '<p>Товаров: {{ order.itemsCount }}, скидка {{ order.discountPercent }}%</p>',
@@ -108,7 +120,7 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
     · {{ change.context }}
   }
 </strong>`,
-      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, line: 4, column: 10 }],
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, line: 4, column: 5, endColumn: 6 }],
     },
     {
       code: `<td>
@@ -128,7 +140,7 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
   }
   {{ movie.title }}, {{ movie.year }}
 </span>`,
-      errors: [{ messageId: 'separator', data: { marker: ',', hint: '' }, line: 5, column: 6, endLine: 5, endColumn: 35 }],
+      errors: [{ messageId: 'separator', data: { marker: ',', hint: '' }, line: 5, column: 20, endLine: 5, endColumn: 21 }],
     },
     {
       code: '<small class="meta">{{ message.sentAt | date }} · {{ message.channel }}</small>',
@@ -152,6 +164,56 @@ createTemplateRuleTester().run(RULE_NAME, noGluedFields, {
       errors: [
         { messageId: 'steps', data: { marker: '→', hint: ', for example `<ui-steps [items]="$value" />`' } },
       ],
+    },
+    {
+      code: "<p>{{ a + ' · ' + b }}</p>",
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, column: 13, endColumn: 14 }],
+    },
+    {
+      code: '<p>{{ `${a} · ${b}` }}</p>',
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' } }],
+    },
+    {
+      code: "<p>{{ items.join(' · ') }}</p>",
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, column: 20 }],
+    },
+    {
+      code: "<dd>{{ d.preferredCities || 'Anywhere' }}{{ d.acceptRemoteUk ? ' · remote UK' : '' }}</dd>",
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' } }],
+    },
+    {
+      code: "<p>{{ a }}{{ b ? ' | ' + b : '' }}</p>",
+      errors: [{ messageId: 'separator', data: { marker: '|', hint: '' } }],
+    },
+    {
+      code: `<p class="muted">
+  Filtered out:
+  @for (item of items; track item.key; let last = $last) {
+    {{ label(item.key) }} {{ item.count }}{{ last ? '' : ' · ' }}
+  }
+</p>`,
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, line: 4 }],
+    },
+    {
+      code: `<p>
+  @for (tag of tags; track tag) {
+    {{ tag }} ·
+  }
+</p>`,
+      errors: [{ messageId: 'separator', data: { marker: '·', hint: '' }, line: 3, column: 15 }],
+    },
+    {
+      code: `<p>
+  {{ a }}
+  ·
+  {{ b }}
+</p>`,
+      errors: [{ messageId: 'separator', line: 3, column: 3 }],
+    },
+    {
+      code: '<p>{{ from }} — {{ to }}</p>',
+      options: [{ separators: ['—'] }],
+      errors: [{ messageId: 'separator', data: { marker: '—', hint: '' } }],
     },
   ],
 });

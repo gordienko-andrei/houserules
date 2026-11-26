@@ -18,7 +18,9 @@ browser font setting, sizes in `px` do not.
 - `[style.font-size.px]="14"`;
 - `[style.fontSize]="'12px'"`, `[style.font-size]="size + 'px'"`;
 - `[ngStyle]` and `[style]` maps: `{ 'font-size': '10px' }`, `{ 'font-size.px': 10 }`;
-- `[attr.style]="'font-size: 9px'"`.
+- `[attr.style]="'font-size: 9px'"`;
+- Tailwind arbitrary values in `class`, `[class]`, `[ngClass]` and `[class.…]`: `text-[12px]`, `md:!text-[13px]/[16px]`,
+  `text-[length:12px]`, `[font-size:11px]`. Other arbitrary values (`text-[#f00]`, `w-[12px]`, `text-[1.5rem]`) pass.
 
 `px` in other properties (`padding`, `width`) is allowed.
 

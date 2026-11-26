@@ -36,11 +36,26 @@ export function isStandardAttribute(name: string): boolean {
 }
 
 // Attributes outside HTML and Angular's own directives most likely belong to a directive of a design system.
-export function directiveAttributesOf(element: ElementFacts, selector?: ElementSelector): string[] {
-  const named = new Set([...(selector?.required ?? []), ...(selector?.excluded ?? [])].map((condition) => condition.name.toLowerCase()));
-  return [...element.attributes.keys()].filter((name) => !isStandardAttribute(name) && !named.has(name.toLowerCase()));
+// `nonComponentAttributes` names inputs and helper directives (`iconStart`, `appTooltip`) that leave the element native.
+export function directiveAttributesOf(
+  element: ElementFacts,
+  selector?: ElementSelector,
+  nonComponentAttributes: readonly string[] = [],
+): string[] {
+  const named = new Set(
+    [...(selector?.required ?? []), ...(selector?.excluded ?? [])].map((condition) => condition.name.toLowerCase()),
+  );
+  const plain = new Set(nonComponentAttributes.map((name) => name.toLowerCase()));
+  return [...element.attributes.keys()].filter((name) => {
+    const lowerName = name.toLowerCase();
+    return !isStandardAttribute(name) && !named.has(lowerName) && !plain.has(lowerName);
+  });
 }
 
-export function isPlainNativeMatch(selector: ElementSelector, element: ElementFacts): boolean {
-  return matchesElementSelector(selector, element) && directiveAttributesOf(element, selector).length === 0;
+export function isPlainNativeMatch(
+  selector: ElementSelector,
+  element: ElementFacts,
+  nonComponentAttributes: readonly string[] = [],
+): boolean {
+  return matchesElementSelector(selector, element) && directiveAttributesOf(element, selector, nonComponentAttributes).length === 0;
 }

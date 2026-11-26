@@ -1,4 +1,4 @@
-import type { HouserulesConfig, RoleMapping, RuleName, RuleSeverity } from './schema';
+import type { HouserulesConfig, RoleMapping, RuleName, RuleSetting, RuleSeverity } from './schema';
 import { RULE_METADATA } from './rule-metadata';
 
 export interface ResolvedRule {
@@ -34,7 +34,11 @@ function glueOptions(config: HouserulesConfig): Record<string, unknown> | undefi
       return mapping === undefined ? [] : [[role, mapping.usage]];
     }),
   );
-  return Object.keys(usages).length === 0 ? undefined : { usages };
+  const options = {
+    ...(Object.keys(usages).length === 0 ? {} : { usages }),
+    ...(config.glueSeparators === undefined ? {} : { separators: config.glueSeparators }),
+  };
+  return Object.keys(options).length === 0 ? undefined : options;
 }
 
 function replacementRule(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
@@ -44,7 +48,8 @@ function replacementRule(config: HouserulesConfig): Omit<ResolvedRule, 'severity
     asList(mapping.replaces).map((selector) => ({ role, selector, component: mapping.component, usage: mapping.usage })),
   );
   const ignoredFiles = [...new Set(replacing.flatMap(([, mapping]) => asList(mapping.files)))];
-  return [{ name: 'prefer-role-component', options: { replacements }, ignoredFiles }];
+  const nonComponentAttributes = config.nonComponentAttributes.length === 0 ? {} : { nonComponentAttributes: config.nonComponentAttributes };
+  return [{ name: 'prefer-role-component', options: { replacements, ...nonComponentAttributes }, ignoredFiles }];
 }
 
 function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'>[] {
@@ -69,12 +74,19 @@ function candidateRules(config: HouserulesConfig): Omit<ResolvedRule, 'severity'
   ];
 }
 
+function settingOf(setting: RuleSetting | undefined): { severity?: RuleSeverity; ignores: readonly string[] } {
+  if (setting === undefined) return { ignores: [] };
+  return typeof setting === 'string' ? { severity: setting, ignores: [] } : { severity: setting.severity, ignores: setting.ignores };
+}
+
 export function resolveRules(config: HouserulesConfig): ResolvedRule[] {
   return candidateRules(config).flatMap((rule) => {
     const metadata = RULE_METADATA[rule.name];
     if (metadata.role !== undefined && config.roles[metadata.role] === undefined) return [];
     const defaultSeverity = config.preset === 'recommended' ? metadata.recommended : metadata.strict;
-    const severity = config.rules[rule.name] ?? defaultSeverity;
-    return severity === 'off' ? [] : [{ ...rule, severity }];
+    const setting = settingOf(config.rules[rule.name]);
+    const severity = setting.severity ?? defaultSeverity;
+    const ignoredFiles = [...new Set([...rule.ignoredFiles, ...setting.ignores])];
+    return severity === 'off' ? [] : [{ ...rule, severity, ignoredFiles }];
   });
 }

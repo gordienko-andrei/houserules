@@ -5,6 +5,7 @@ import {
   findExpressionsNextToCurrency,
   isAmountExpression,
   isCurrencyCodeExpression,
+  isCurrencyMarker,
   startsWithCurrencyMarker,
 } from './currency-text';
 
@@ -37,9 +38,28 @@ describe('startsWithCurrencyMarker', () => {
     expect(startsWithCurrencyMarker(' рублей', ['руб'])).toBe(false);
   });
 
+  it('skips a magnitude suffix before the currency', () => {
+    expect(startsWithCurrencyMarker('k £', [])).toBe(true);
+    expect(startsWithCurrencyMarker(' bn USD', ['USD'])).toBe(true);
+    expect(startsWithCurrencyMarker(' km £', [])).toBe(false);
+  });
+
   it('ignores plain text', () => {
     expect(startsWithCurrencyMarker(' items', ['USD'])).toBe(false);
     expect(startsWithCurrencyMarker(' %', [])).toBe(false);
+  });
+});
+
+describe('isCurrencyMarker', () => {
+  it('accepts a currency symbol alone or with a short prefix', () => {
+    expect(isCurrencyMarker(' £ ', [])).toBe(true);
+    expect(isCurrencyMarker('US$', [])).toBe(true);
+    expect(isCurrencyMarker('руб.', ['руб.'])).toBe(true);
+  });
+
+  it('rejects text around a symbol', () => {
+    expect(isCurrencyMarker('Price in $', [])).toBe(false);
+    expect(isCurrencyMarker('GBP', [])).toBe(false);
   });
 });
 

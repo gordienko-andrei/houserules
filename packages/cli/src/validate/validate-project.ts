@@ -36,6 +36,13 @@ function scanChecks(scan: ScanReport): Check[] {
   if ((scan.missingDependencies?.length ?? 0) > 0) {
     checks.push({ status: 'warning', message: `scan skipped missing dependencies: ${scan.missingDependencies?.join(', ')}.` });
   }
+  const inline = scan.inlineTemplateCount ?? 0;
+  if (inline > 0) {
+    checks.push({
+      status: 'ok',
+      message: `${inline} of ${scan.templateCount} templates are inline and counted here. ESLint checks them with \`configs.recommended({ inlineTemplates: true })\` or with the inline template processor of angular-eslint.`,
+    });
+  }
   return checks;
 }
 
@@ -67,6 +74,7 @@ export async function validateProject(root: string): Promise<Check[]> {
       components: roles.flatMap((role) => (role.component === undefined ? [] : [role.component])),
       pipes: roles.flatMap((role) => (role.pipe === undefined ? [] : [role.pipe])),
       replaces: roles.flatMap((role) => asList(role.replaces).map((selector) => ({ selector, ignoredFiles: asList(role.files) }))),
+      nonComponentAttributes: config.nonComponentAttributes,
     });
   } catch (error) {
     return [...checks, { status: 'error', message: error instanceof Error ? error.message : String(error) }];

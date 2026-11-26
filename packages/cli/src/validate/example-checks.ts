@@ -18,8 +18,18 @@ function lintOrError(prepared: { readonly lint: (code: string, fileName: string)
 export function checkReplacementScan(roleName: string, summary: ReplacementSummary): Check {
   const examples = summary.examples.map((example) => `${example.file}:${example.line}`).join(', ');
   const reported = `${summary.reported} native element(s) to replace${examples === '' ? '' : ` (${examples})`}`;
-  const directives = summary.directives.map((directive) => `${directive.name} ${directive.count}`).join(', ');
-  const skipped = summary.skipped === 0 ? '' : `; ${summary.skipped} skipped because they carry a directive: ${directives}`;
+  const directives = summary.directives.map((directive) => `${directive.name} on ${directive.count}`).join(', ');
+  const skipped =
+    summary.skipped === 0
+      ? ''
+      : `; ${summary.skipped} skipped because they carry directive attributes: ${directives} (one element may carry several)`;
+  const undeclared = summary.undeclaredAttributes.map((name) => `\`${name}\``).join(', ');
+  if (undeclared !== '') {
+    return {
+      status: 'warning',
+      message: `${roleName}: replaces \`${summary.selector}\`: ${reported}${skipped}. No directive of the project or its libraries selects on ${undeclared}: if it is an input or a helper directive, add it to \`nonComponentAttributes\`.`,
+    };
+  }
   return { status: 'ok', message: `${roleName}: replaces \`${summary.selector}\`: ${reported}${skipped}.` };
 }
 

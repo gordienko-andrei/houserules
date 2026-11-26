@@ -19,7 +19,7 @@ npx houserules scan       # facts about components, pipes and money in templates
 npx houserules context --list  # discover configured roles
 npx houserules context --roles money  # selected role and project guidance
 npx houserules validate   # check that roles map to real components and working calls
-npx houserules generate   # update AGENTS.md and the skills after the config changes (--check for CI)
+npx houserules generate   # update AGENTS.md and the skills after the config changes (--check for CI, --agents-dir in a monorepo)
 ```
 
 All commands take `--cwd <path>`.
@@ -57,11 +57,13 @@ export default defineConfig({
 | --- | --- |
 | `roles` | Role name → `component` (a custom element `app-money` or a directive on an element `button[mat-flat-button]`) or `pipe`, `usage` with `$value` in place of the shown expression, optional `files` of the component itself, `replaces` with native element selectors the component is used instead of (`button:not([pButton])`, `input[type=checkbox]`) and `description` (required for custom roles). Built-in roles: money, status, metric, issue, comparison, tip, steps, code, action. |
 | `currencyWords` | Currency codes or words that count as a currency sign. |
+| `glueSeparators` | Text that glues two values for `no-glued-fields`. Default `['•', '·', '|', ',', ';']`; `,` and `;` are allowed in sentences. |
+| `nonComponentAttributes` | Inputs and helper directives that leave a native element native (`iconStart`, `appTooltip`), so `replaces` still reports it. |
 | `restrictions` | Project bans not tied to a role: an ESLint `selector` over the template AST, a `message`, and `bad` and `good` examples that `validate` lints. |
 | `moneyPipes` | Pipes that must not format money in templates. Default `['currency']`. |
 | `glossary` | Domain terms returned by the context command, in Markdown. |
 | `examples` | Reference components agents should copy. |
-| `rules` | Severity per rule: `off`, `warn` or `error`. |
+| `rules` | Per rule: `off`, `warn` or `error`, or `{ severity, ignores }` with files the rule does not check. |
 | `preset` | `recommended` enables resource-state checks as warnings and leaves the separator rule off. `strict` enables all applicable rules as errors. Configs without a preset keep the original strict defaults. Explicit `rules` override the preset. |
 | `scan.roots` | Optional directories relative to the project root. Defaults to existing `src`, `apps`, `libs`, `projects` and `angular.json` source roots, or the project root when none exist. |
 

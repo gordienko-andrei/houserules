@@ -14,15 +14,15 @@ export const RULE_METADATA: Readonly<Record<RuleName, RuleMetadata>> = {
   },
   'no-glued-fields': {
     recommended: 'off', strict: 'error',
-    summary: 'reports separate interpolated values joined with separators or arrows',
+    summary: 'reports separate interpolated values joined with separators or arrows, also when the separator is a string inside the expression',
   },
   'require-async-states': {
     recommended: 'warn', strict: 'error',
-    summary: 'checks resource value(), isLoading(), error() and status() calls in one template; status() is treated as handling both loading and error',
+    summary: 'checks value(), isLoading(), error() and status() of the resources the component declares, in one template; status() is treated as handling both loading and error',
   },
   'no-px-font-size': {
     recommended: 'error', strict: 'error',
-    summary: 'reports fixed px font sizes in template styles',
+    summary: 'reports fixed px font sizes in template styles and Tailwind classes such as text-[12px]',
   },
   'prefer-role-component': {
     recommended: 'warn', strict: 'error',

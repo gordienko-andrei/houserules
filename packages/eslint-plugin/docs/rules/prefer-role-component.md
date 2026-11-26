@@ -59,10 +59,15 @@ A small subset of CSS selectors, enough to tell a native element from the same e
 | `input[type=checkbox]` | `<input type="checkbox">` |
 | `button[type]` | a `<button>` with `type`, static or bound |
 | `button:not([pButton])` | a `<button>` without the `pButton` attribute or input |
+| `button:not(.filter-pill)`, `button:not([class~=filter-pill])` | a `<button>` without the `filter-pill` class |
+| `button:not(th > *)` | a `<button>` that is not a direct child of `<th>` |
+| `button:not(nav *)` | a `<button>` that is not inside `<nav>` at any depth |
 
-Other CSS syntax (classes, combinators, lists) is rejected by `houserules validate`. A bound value (`[type]="kind"`)
-is unknown to the linter: it never matches `[type=checkbox]` and always counts as present for `:not(...)`, so the
-rule stays silent when it cannot be sure.
+The last three describe native elements kept on purpose: sortable table headers, filter pills, links styled as
+text. Other CSS syntax (combinators outside `:not(...)`, lists, pseudo-classes) is rejected by
+`houserules validate`. Values of enumerated HTML attributes compare without case, so `type="CHECKBOX"` matches
+`[type=checkbox]`. A bound value (`[type]="kind"`) is unknown to the linter: it never matches `[type=checkbox]`
+and always counts as present for `:not(...)`, so the rule stays silent when it cannot be sure.
 
 ## Elements with a directive
 
@@ -72,9 +77,20 @@ An element is reported only when it carries no directive. Any attribute or input
 `<button mat-tab-link>`, `<button tuiButton>`. So `replaces: 'button'` works for Material, PrimeNG or Taiga
 without listing their directives. Attributes named in the selector itself do not count.
 
-The cost is a miss, never a false report: `<button appTrackClick>` with an analytics directive is skipped. Use
-`:not(...)` only to skip something more. `houserules validate` shows, for every selector in `replaces`, how many
-elements it reports and which directives made it skip the others.
+The cost is a miss, never a false report: `<button appTooltip>` with a helper directive is skipped, and so is
+`<button iconStart="@tui.plus">` whose attribute is only an input. List such attributes in the config, and the
+element is checked again:
+
+```ts
+export default defineConfig({
+  nonComponentAttributes: ['iconStart', 'appTooltip'],
+  roles: { /* ... */ },
+});
+```
+
+Use `:not(...)` only to skip something more. `houserules validate` shows, for every selector in `replaces`, how many
+elements it reports and which attributes made it skip the others, and names the attributes that no directive of
+the project or its libraries selects on: those are inputs and belong in `nonComponentAttributes`.
 
 ## What it reports
 
@@ -90,5 +106,5 @@ elements it reports and which directives made it skip the others.
 ## Limits
 
 The rule checks only the elements in `replaces`. It does not decide which inputs the component needs: the `usage`
-example in the message shows them. Elements created in TypeScript or inline templates outside the ESLint `files` are
-not checked.
+example in the message shows them. Elements created in TypeScript are not checked, and inline templates only with
+`configs.recommended({ inlineTemplates: true })`.

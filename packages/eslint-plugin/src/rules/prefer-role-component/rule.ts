@@ -1,7 +1,7 @@
 import { describeElementSelector, elementFactsOf, isPlainNativeMatch, parseElementSelector, ruleDocsUrl, type ElementSelector } from '@andrewgordienko/houserules';
 import { createRule } from '../../utils/create-rule';
 import { ensureTemplateParser } from '../../utils/ensure-template-parser';
-import type { ElementNode } from '../../utils/template-ast';
+import { isElement, type ElementNode, type TemplateNode } from '../../utils/template-ast';
 import { startTagLoc } from './start-tag-loc';
 
 export const RULE_NAME = 'prefer-role-component';
@@ -15,10 +15,20 @@ export interface Replacement {
 
 export interface PreferRoleComponentOptions {
   readonly replacements?: readonly Replacement[];
+  readonly nonComponentAttributes?: readonly string[];
 }
 
 interface ParsedReplacement extends Replacement {
   readonly parsed: ElementSelector;
+}
+
+function ancestorElementsOf(node: TemplateNode): ElementNode[] {
+  const ancestors: ElementNode[] = [];
+  // The root node has `parent: null` at runtime, not undefined.
+  for (let current = node.parent ?? undefined; current !== undefined; current = current.parent ?? undefined) {
+    if (isElement(current)) ancestors.push(current);
+  }
+  return ancestors;
 }
 
 function parseReplacements(replacements: readonly Replacement[]): ParsedReplacement[] {
@@ -60,6 +70,12 @@ export const preferRoleComponent = createRule<[PreferRoleComponentOptions], 'nat
             },
             description: 'Native element selectors and the role components used instead of them.',
           },
+          nonComponentAttributes: {
+            type: 'array',
+            items: { type: 'string', minLength: 1 },
+            uniqueItems: true,
+            description: 'Inputs and helper directives that leave a native element native, for example `iconStart`.',
+          },
         },
         additionalProperties: false,
       },
@@ -69,10 +85,11 @@ export const preferRoleComponent = createRule<[PreferRoleComponentOptions], 'nat
   create(context, [options]) {
     ensureTemplateParser(context);
     const replacements = parseReplacements(options.replacements ?? []);
+    const nonComponentAttributes = options.nonComponentAttributes ?? [];
     return {
       Element(node: ElementNode) {
-        const facts = elementFactsOf(node);
-        const replacement = replacements.find((candidate) => isPlainNativeMatch(candidate.parsed, facts));
+        const facts = elementFactsOf(node, ancestorElementsOf(node));
+        const replacement = replacements.find((candidate) => isPlainNativeMatch(candidate.parsed, facts, nonComponentAttributes));
         if (replacement === undefined) return;
         context.report({
           loc: startTagLoc(node),

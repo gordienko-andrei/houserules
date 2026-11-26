@@ -14,7 +14,7 @@ This guide takes a project from zero to checks in CI.
 | What | Version |
 | --- | --- |
 | Angular | 18+ (`require-async-states` needs the resource API of Angular 19+) |
-| ESLint | 9 or 10, flat config (`eslint.config.js`) |
+| ESLint | 9 or 10, flat config (`eslint.config.mjs` or `eslint.config.js`) |
 | `@angular-eslint/template-parser` | 18+, usually the same major as Angular |
 | TypeScript | 5+ |
 | Node.js | 22 (tested) |
@@ -85,6 +85,11 @@ By default scan searches existing `src`, `apps`, `libs` and `projects` directori
 | `.claude/skills/houserules-learn/SKILL.md` | How an agent turns your corrections of its markup into config. |
 
 Commit all of them: they are the context your agents get.
+
+In a monorepo the config often lives in a subfolder such as `frontend/`, while `AGENTS.md` and `.claude/skills`
+belong to the repository root. `init` and `generate` write these files next to the nearest `AGENTS.md` above the
+config, up to the git root, and add `--cwd frontend` to every `npx houserules` command in them. Without an
+`AGENTS.md` above, they stay next to the config. `--agents-dir <path>` picks the folder explicitly.
 
 ## 3. Map the roles
 
@@ -162,7 +167,17 @@ export default defineConfig({
   `{ component: 'p-button', usage: '<p-button [label]="$value" />', replaces: 'button:not([pButton])' }`. The
   [`prefer-role-component`](../packages/eslint-plugin/docs/rules/prefer-role-component.md) rule then reports such
   elements everywhere except the role `files`. Elements that already carry a directive (`<button matChipRemove>`) are
-  skipped, so `replaces: 'button'` is usually enough.
+  skipped, so `replaces: 'button'` is usually enough. Native elements kept on purpose are excluded by class or by
+  context: `button:not(.filter-pill):not(th > *)`.
+- `nonComponentAttributes`: inputs and helper directives that leave a native element native, for example
+  `['iconStart', 'appTooltip']`. Without them `<button appTooltip>` counts as a directive element and is skipped.
+  `validate` names the skipped attributes that no directive of the project or its libraries selects on.
+- `glueSeparators`: what glues two values for `no-glued-fields`. Default `['•', '·', '|', ',', ';']`; `,` and `;`
+  are allowed inside sentences. Leave out `,` if `{{ city }}, {{ country }}` is normal text in your project, add
+  `—` if your team never uses dashes for ranges.
+- `rules`: a level per rule, or `{ severity, ignores }` to keep a rule away from some files, for example a template
+  that renders a document: `rules: { 'no-glued-fields': { ignores: ['**/resume-preview*'] } }`. Use this instead
+  of `eslint-disable` comments, which agents copy.
 
 ### Project restrictions
 
@@ -229,14 +244,15 @@ npx houserules generate
 
 ## 5. Turn on ESLint
 
-Add the factory to `eslint.config.js`:
+Add the factory to `eslint.config.mjs`. Use `.mjs`, or `.js` in a package with `"type": "module"`: otherwise Node
+prints `MODULE_TYPELESS_PACKAGE_JSON` on every run.
 
 ```js
 import houserules from 'eslint-plugin-houserules';
 
 export default [
   // ...your configs
-  ...houserules.configs.recommended(),
+  ...houserules.configs.recommended({ cwd: import.meta.dirname }),
 ];
 ```
 
@@ -245,13 +261,30 @@ way: `...houserules.configs.recommended()`.
 
 `configs.recommended()` reads `houserules.config.ts` while ESLint loads its config, and returns blocks for
 `**/*.html` with the template parser, the rules of the mapped roles, the rules that need no role, and `off` for the
-`files` of each role. Options:
+`files` of each role and the `ignores` of each rule. Without `houserules.config.ts` it prints a warning and returns
+no blocks, so the rest of your ESLint config keeps working. Options:
 
 | Option | Default | Description |
 | --- | --- | --- |
 | `cwd` | `process.cwd()` | Where `houserules.config.ts` is. Pass `import.meta.dirname` if ESLint may run from another folder. |
 | `config` | none | The config object itself, instead of reading the file. |
 | `files` | `['**/*.html']` | Files the rules apply to. |
+| `inlineTemplates` | `false` | Also check `template:` strings of components with the `houserules/inline-templates` processor. |
+| `inlineTemplateFiles` | `['**/*.ts']` | Files the processor reads. |
+
+### Inline templates
+
+`template:` strings of components are checked only with `inlineTemplates: true`:
+
+```js
+...houserules.configs.recommended({ cwd: import.meta.dirname, inlineTemplates: true }),
+```
+
+The processor passes the `.ts` text on unchanged, so your TypeScript rules keep working, and maps every message
+back to its line in the `.ts` file. ESLint must already know how to parse `.ts` files, for example through
+typescript-eslint. If you use the inline template processor of angular-eslint (`processInlineTemplates`), leave
+the option off: the blocks it extracts are `.html` files and Houserules already checks them. `validate` tells
+how many inline templates the project has.
 
 ### CommonJS config
 
@@ -289,9 +322,9 @@ typical cases, so an agent can fix the template without asking.
 | Rule | Reports | Needs a role |
 | --- | --- | --- |
 | [`use-money-component`](../packages/eslint-plugin/docs/rules/use-money-component.md) | Money shown with another pipe or by hand next to a currency sign or code | `money` |
-| [`no-glued-fields`](../packages/eslint-plugin/docs/rules/no-glued-fields.md) | Values glued into one text with `·`, `•`, `\|`, commas or arrows | no |
+| [`no-glued-fields`](../packages/eslint-plugin/docs/rules/no-glued-fields.md) | Values glued into one text with `·`, `•`, `\|`, commas or arrows, also inside string literals | no |
 | [`require-async-states`](../packages/eslint-plugin/docs/rules/require-async-states.md) | Resource data without loading, error and empty states | no |
-| [`no-px-font-size`](../packages/eslint-plugin/docs/rules/no-px-font-size.md) | Font sizes in `px` in `style` and style bindings | no |
+| [`no-px-font-size`](../packages/eslint-plugin/docs/rules/no-px-font-size.md) | Font sizes in `px` in `style`, style bindings and Tailwind classes such as `text-[12px]` | no |
 
 ## 6. Turn on stylelint
 
@@ -367,7 +400,7 @@ from the current config by `context`.
 | `houserules context --list` | List mapped role names and descriptions. |
 | `houserules context --roles money,status` | Load selected mappings and project guidance. Use `--guidance` when no role applies. |
 | `houserules validate` | Checks the config against the project. Exit code 1 on errors. |
-| `houserules generate` | Updates generated files from the config. `--check` only checks them. |
+| `houserules generate` | Updates generated files from the config. `--check` only checks them. `--agents-dir` picks where they go. |
 
 Every command takes `--cwd <path>` for the project root.
 
@@ -375,7 +408,8 @@ Every command takes `--cwd <path>` for the project root.
 
 | Problem | Fix |
 | --- | --- |
-| `No houserules.config.ts in <path>. Run npx houserules init` | ESLint runs from another folder: pass `cwd: import.meta.dirname` to `recommended()`. |
+| `eslint-plugin-houserules: no houserules.config.ts in <path>` | ESLint runs from another folder: pass `cwd: import.meta.dirname` to `recommended()`. The Houserules rules are off until then. |
+| `validate` counts more native elements than ESLint reports | Some are in inline templates. Pass `inlineTemplates: true` to `recommended()`. |
 | `Invalid Houserules <path>:` with a list of fields | Fix the listed fields, for example `roles.money.usage: The money usage must contain $value.` |
 | `Rule "houserules/…" needs '@angular-eslint/template-parser'` | Another config sets a different parser for the same `.html` files after Houserules. Put `recommended()` last. |
 | `use-money-component` does not report anything | The `money` role is not mapped. Check `npx houserules validate`: the rule shows as off. |
@@ -385,6 +419,7 @@ Every command takes `--cwd <path>` for the project root.
 
 ## Limitations
 
-- Templates in `.html` files are checked. Inline `template:` strings in components were not tested yet.
+- Inline `template:` strings are checked with `inlineTemplates: true`. Templates built from string variables
+  (`template: header + body`) are not.
 - `require-async-states` checks one template: states handled by a parent component are not seen.
 - Sizes behind SCSS variables and mixins (`font-size: $base`) are not checked.

@@ -17,6 +17,7 @@ A correction becomes config only when it is a convention of the whole project, n
    - *Data and business logic* (fields, requests, error handling): not Houserules, it stays in the code review.
    - *Styles and layout* (spacing, colours, heights): not Houserules; suggest design tokens or the project stylelint.
    - *One screen only* (a filter moved under another one): not a convention, skip it.
+   - *A rule that is right in general but not for some files* (a template that renders a document, such as a resume): `rules: { '<rule>': { ignores: ['<glob>'] } }`, never an `eslint-disable` comment.
 4. **Check every candidate against the project, not this diff.** Run `npx houserules scan --json` and search the templates. A convention needs evidence outside the corrected screen (the component is used elsewhere, the native element is rare or old code) or an explicit "everywhere" from the user. Note the counts.
 5. **Propose a table**: correction → config change → kind → evidence. Mark doubts and ask about them: a library default may not be the team convention.
 6. **Write the config after confirmation.** Build `usage` from a real call in the project and keep only inputs that are the same for every use. For `replaces` use a selector that leaves the library directive alone, for example `button:not([pButton])`.

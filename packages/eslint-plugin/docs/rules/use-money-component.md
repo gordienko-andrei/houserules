@@ -27,6 +27,14 @@ Consistent presentation of the same kind of data across screens is
    name ends with `currency` or `currencyCode`; the amount uses the `number` or `decimal` pipe or has a name
    like `total`, `price`, `amount`, `sum`, `balance`, `cost`, `payment` or `value`.
 
+4. A currency sign alone in a neighbouring element: `<span>£</span>{{ amount }}`, `{{ amount }} <small>₽</small>`.
+5. A magnitude suffix between the amount and its currency: `{{ amount | number }}k £`, `{{ total }} bn USD`
+   (`k`, `K`, `M`, `B`, `m`, `bn`, `mn`).
+
+Text built inside an expression counts the same as text around it: `{{ '£' + (amount | number) }}`,
+``{{ `£${amount}` }}``, `{{ amount ? '£' + amount : 'Not set' }}` (the branch with the value is checked), and property
+bindings such as `[attr.aria-label]="'Price ' + amount + ' GBP'"`.
+
 Apart from case 3, the rule does not guess money from field names such as `totalSum`: a name is a hint, not a fact.
 
 ## Messages with a ready call
@@ -37,6 +45,10 @@ With `usage`, the message contains the exact call to copy, built from the real e
 Show `order.total` with `<ui-money [value]="order.total" />` instead of the `currency` pipe.
 Show `order.debt` with `<ui-money [value]="order.debt" />` instead of formatting it by hand next to a currency sign or code.
 ```
+
+The value in the call is the amount itself: `number`, `decimal`, `percent` and money pipes around it are dropped,
+because the money component formats the number and would get a string otherwise.
+`{{ salary | number }} £` gives `<ui-money [value]="salary" />`.
 
 A correct fix becomes cheaper than a workaround such as deleting the currency sign. The ready call is
 given only where it fits: for a value in text content, not inside a property binding or an attribute.

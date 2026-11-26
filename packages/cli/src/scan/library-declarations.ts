@@ -11,9 +11,15 @@ export interface LibraryDeclarations {
   readonly missing: readonly string[];
 }
 
-const COMPONENT_DECLARATION = /ɵɵComponentDeclaration<[^,]+,\s*"([^"]+)"/g;
-const DIRECTIVE_DECLARATION = /ɵɵDirectiveDeclaration<[^,]+,\s*"([^"]+)"/g;
-const PIPE_DECLARATION = /ɵɵPipeDeclaration<[^,]+,\s*"([^"]+)"/g;
+// Selectors are string literal types, so `input[type="checkbox"]` comes as `"input[type=\"checkbox\"]"`.
+const COMPONENT_DECLARATION = /ɵɵComponentDeclaration<[^,]+,\s*"((?:[^"\\]|\\.)+)"/g;
+const DIRECTIVE_DECLARATION = /ɵɵDirectiveDeclaration<[^,]+,\s*"((?:[^"\\]|\\.)+)"/g;
+const PIPE_DECLARATION = /ɵɵPipeDeclaration<[^,]+,\s*"((?:[^"\\]|\\.)+)"/g;
+const ESCAPED_CHARACTER = /\\(.)/g;
+
+function literalsOf(text: string, pattern: RegExp): string[] {
+  return [...text.matchAll(pattern)].map((match) => (match[1] ?? '').replace(ESCAPED_CHARACTER, '$1'));
+}
 const NON_UI_PACKAGES = /^(typescript|rxjs|tslib|zone\.js|eslint.*|@types\/.*|@angular-eslint\/.*|@typescript-eslint\/.*|vitest|jest|karma.*|jasmine.*)$/;
 
 function dependencyNames(root: string): string[] {
@@ -30,11 +36,11 @@ function dependencyNames(root: string): string[] {
 }
 
 export function parseLibraryTypings(text: string): { elements: string[]; attributeSelectors: string[]; pipes: string[] } {
-  const selectors = [...text.matchAll(COMPONENT_DECLARATION)].map((match) => match[1] ?? '');
-  const directiveSelectors = [...text.matchAll(DIRECTIVE_DECLARATION)].map((match) => match[1] ?? '');
-  const elements = selectors.flatMap(elementNamesOf);
+  const selectors = literalsOf(text, COMPONENT_DECLARATION);
+  const directiveSelectors = literalsOf(text, DIRECTIVE_DECLARATION);
+  const elements = [...selectors, ...directiveSelectors].flatMap(elementNamesOf);
   const attributeSelectors = [...selectors, ...directiveSelectors].flatMap(splitSelectorList).filter((part) => part.includes('['));
-  const pipes = [...text.matchAll(PIPE_DECLARATION)].map((match) => match[1] ?? '');
+  const pipes = literalsOf(text, PIPE_DECLARATION);
   return { elements, attributeSelectors, pipes };
 }
 

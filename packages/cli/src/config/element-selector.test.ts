@@ -26,16 +26,29 @@ describe('parseElementSelector', () => {
       tag: 'input',
       required: [{ name: 'type', value: 'checkbox' }],
       excluded: [{ name: 'formControlName' }],
+      excludedContexts: [],
     });
     expect(parseElementSelector('button[type="submit"]')?.required).toEqual([{ name: 'type', value: 'submit' }]);
   });
 
   it('parses an attribute selector without a tag', () => {
-    expect(parseElementSelector('[pButton]')).toEqual({ source: '[pButton]', required: [{ name: 'pButton' }], excluded: [] });
+    expect(parseElementSelector('[pButton]')).toEqual({ source: '[pButton]', required: [{ name: 'pButton' }], excluded: [], excludedContexts: [] });
+  });
+
+  it('parses classes and words of a list as conditions', () => {
+    expect(parseElementSelector('button:not(.jp-pill)')?.excluded).toEqual([{ name: 'class', value: 'jp-pill', isWord: true }]);
+    expect(parseElementSelector('button[class~=link]')?.required).toEqual([{ name: 'class', value: 'link', isWord: true }]);
+  });
+
+  it('parses excluded ancestors', () => {
+    expect(parseElementSelector('button:not(th > *):not(nav *)')?.excludedContexts).toEqual([
+      { ancestor: { source: 'th', tag: 'th', required: [], excluded: [], excludedContexts: [] }, isDirectParent: true },
+      { ancestor: { source: 'nav', tag: 'nav', required: [], excluded: [], excludedContexts: [] }, isDirectParent: false },
+    ]);
   });
 
   it('rejects selectors outside the supported subset', () => {
-    for (const source of ['', '.button', ':not([a])', 'div > button', 'button,a', 'button:hover', 'button:not([a]', 'button[']) {
+    for (const source of ['', ':not([a])', 'div > button', 'button,a', 'button:hover', 'button:not([a]', 'button[', 'button:not(th > button)']) {
       expect(parseElementSelector(source), source).toBeUndefined();
     }
   });
@@ -47,12 +60,42 @@ describe('splitSelectorList', () => {
   });
 });
 
+describe('matchesElementSelector with lists and context', () => {
+  it('matches a word of the class list', () => {
+    const pill = selector('button:not(.jp-pill)');
+    expect(matchesElementSelector(pill, element('button', { class: 'jp-pill is-active' }))).toBe(false);
+    expect(matchesElementSelector(pill, element('button', { class: 'jp-pillbox' }))).toBe(true);
+  });
+
+  it('compares enumerated values without case', () => {
+    expect(matchesElementSelector(selector('input[type=checkbox]'), element('input', { type: 'CHECKBOX' }))).toBe(true);
+    expect(matchesElementSelector(selector('input[name=a]'), element('input', { name: 'A' }))).toBe(false);
+  });
+
+  it('skips elements inside an excluded ancestor', () => {
+    const button = selector('button:not(th > *)');
+    const inHeader = { ...element('button'), ancestors: [element('th'), element('tr')] };
+    const inSpan = { ...element('button'), ancestors: [element('span'), element('th')] };
+    expect(matchesElementSelector(button, inHeader)).toBe(false);
+    expect(matchesElementSelector(button, inSpan)).toBe(true);
+    expect(matchesElementSelector(selector('button:not(th *)'), inSpan)).toBe(false);
+    expect(matchesElementSelector(button, element('button'))).toBe(false);
+  });
+});
+
 describe('selectorCovers', () => {
   it('applies a directive declaration to a role selector that requires the same attribute', () => {
     expect(selectorCovers(selector('[pButton]'), selector('button[pButton]'))).toBe(true);
     expect(selectorCovers(selector('button[mat-button]'), selector('button[mat-button]'))).toBe(true);
     expect(selectorCovers(selector('a[mat-button]'), selector('button[mat-button]'))).toBe(false);
     expect(selectorCovers(selector('[pButton]'), selector('button'))).toBe(false);
+  });
+
+  it('lets a declaration pin a native attribute the role selector leaves open', () => {
+    const isNative = (name: string) => name === 'type';
+    expect(selectorCovers(selector('input[type="checkbox"][tuiCheckbox]'), selector('input[tuiCheckbox]'), isNative)).toBe(true);
+    expect(selectorCovers(selector('input[type=checkbox]'), selector('input[tuiCheckbox]'), isNative)).toBe(false);
+    expect(selectorCovers(selector('input[type=radio][tuiCheckbox]'), selector('input[type=checkbox][tuiCheckbox]'), isNative)).toBe(false);
   });
 });
 

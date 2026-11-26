@@ -1,7 +1,7 @@
 import { resolveRules } from '../config/resolve-rules';
 import { RULE_METADATA } from '../config/rule-metadata';
 import { findBuiltInRole } from '../config/roles';
-import type { HouserulesConfig, RoleMapping } from '../config/schema';
+import { DEFAULT_GLUE_SEPARATORS, type HouserulesConfig, type RoleMapping, type RuleName } from '../config/schema';
 import { ruleDocsUrl } from '../rule-docs';
 import { PLAN_SKILL_NAME, SKILLS_DIRECTORY } from './skills';
 
@@ -36,16 +36,33 @@ function rolesTable(config: HouserulesConfig): string[] {
   return lines;
 }
 
-const SCREEN_RULES = [
-  '- One meaning, one element. Never glue different values into one line with `·`, `•`, `|`, commas or arrows, metadata lines included: it is the most visible sign of generated markup. Put each value in its own element and space them with layout (`gap`).',
-  '- Highlight the main value and mute the secondary ones: the number itself is prominent, its rate, unit, date or source is a separate element in the muted text style of the project.',
-  '- The backend is the only source of truth. Do not recalculate values, rewrite messages or parse their text.',
-  '- Tone follows the real state: green only after success is a fact, never "rows are valid" before the operation is applied.',
-  '- A fix hint stands next to the error it belongs to, and only if the backend provides it.',
-  '- Async data shows loading, error and empty states.',
-  '- Font sizes use `rem` or project typography classes, never fixed `px`.',
-  '- Texts come from the project i18n, not hard-coded in templates.',
+interface ScreenRule {
+  readonly text: (config: HouserulesConfig) => string;
+  readonly rule?: RuleName;
+}
+
+function glueRule(config: HouserulesConfig): string {
+  const separators = (config.glueSeparators ?? DEFAULT_GLUE_SEPARATORS).map((separator) => `\`${separator}\``).join(', ');
+  return `- One meaning, one element. Never glue different values into one line with ${separators} or arrows, metadata lines included: it is the most visible sign of generated markup. Put each value in its own element and space them with layout (\`gap\`).`;
+}
+
+// A line tied to a rule is shown only while that rule is on, so agents are not told about checks the project does not run.
+const SCREEN_RULES: readonly ScreenRule[] = [
+  { text: glueRule, rule: 'no-glued-fields' },
+  { text: () => '- Highlight the main value and mute the secondary ones: the number itself is prominent, its rate, unit, date or source is a separate element in the muted text style of the project.' },
+  { text: () => '- The backend is the only source of truth. Do not recalculate values, rewrite messages or parse their text.' },
+  { text: () => '- Tone follows the real state: green only after success is a fact, never "rows are valid" before the operation is applied.' },
+  { text: () => '- A fix hint stands next to the error it belongs to, and only if the backend provides it.' },
+  { text: () => '- Async data shows loading, error and empty states.', rule: 'require-async-states' },
+  { text: () => '- Font sizes use `rem` or project typography classes, never fixed `px`.', rule: 'no-px-font-size' },
 ];
+
+function screenRules(config: HouserulesConfig): string[] {
+  const enabled = new Set(resolveRules(config).map((item) => item.name));
+  return SCREEN_RULES.filter((item) => (item.rule === undefined ? config.preset !== 'recommended' : enabled.has(item.rule))).map((item) =>
+    item.text(config),
+  );
+}
 
 function restrictionsSection(config: HouserulesConfig): string[] {
   if (config.restrictions.length === 0) return [];
@@ -91,13 +108,7 @@ export function renderContext(config: HouserulesConfig, roles: HouserulesConfig[
     '',
     '### Rules for every screen',
     '',
-    ...SCREEN_RULES.filter((rule) => {
-      const errors = new Set(resolveRules(config).filter((item) => item.severity === 'error').map((item) => item.name));
-      if (rule.startsWith('- One meaning')) return errors.has('no-glued-fields');
-      if (rule.startsWith('- Async data')) return errors.has('require-async-states');
-      if (rule.startsWith('- Font sizes')) return errors.has('no-px-font-size');
-      return config.preset !== 'recommended';
-    }),
+    ...screenRules(config),
     '',
     ...restrictionsSection(config),
     ...checksSection(config),

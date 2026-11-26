@@ -97,4 +97,24 @@ describe('resolveRules', () => {
       ['require-async-states', 'error'],
     ]);
   });
+
+  it('excludes files from one rule and keeps the preset level when only ignores are set', () => {
+    const rules = resolveRules(
+      parseConfig({ preset: 'strict', rules: { 'no-glued-fields': { ignores: ['**/resume-preview*'] }, 'no-px-font-size': { severity: 'warn', ignores: ['**/print/**'] } } }),
+    );
+    expect(rules.find((rule) => rule.name === 'no-glued-fields')).toMatchObject({ severity: 'error', ignoredFiles: ['**/resume-preview*'] });
+    expect(rules.find((rule) => rule.name === 'no-px-font-size')).toMatchObject({ severity: 'warn', ignoredFiles: ['**/print/**'] });
+  });
+
+  it('passes glue separators and attributes that leave elements native', () => {
+    const rules = resolveRules(
+      parseConfig({
+        glueSeparators: ['·', '—'],
+        nonComponentAttributes: ['iconStart'],
+        roles: { action: { component: 'button[tuiButton]', usage: '<button tuiButton>{{ $value }}</button>', replaces: 'button' } },
+      }),
+    );
+    expect(rules.find((rule) => rule.name === 'no-glued-fields')?.options).toEqual({ separators: ['·', '—'] });
+    expect(rules.find((rule) => rule.name === 'prefer-role-component')?.options).toMatchObject({ nonComponentAttributes: ['iconStart'] });
+  });
 });

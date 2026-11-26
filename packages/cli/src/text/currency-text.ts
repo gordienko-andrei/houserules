@@ -3,6 +3,8 @@ import { nameTokens } from '../scan/usage-summary';
 const CURRENCY_SYMBOL_AT_END = /\p{Sc}$/u;
 const CURRENCY_SYMBOL_AT_START = /^\p{Sc}/u;
 const LETTER = /\p{L}/u;
+const MAGNITUDE_SUFFIX = /^\s*(?:bn|mn|[kKmMB])(?!\p{L})\.?/u;
+const SYMBOL_WITH_PREFIX = /^\p{L}{0,3}\p{Sc}$/u;
 
 function isLetter(character: string | undefined): boolean {
   return character !== undefined && LETTER.test(character);
@@ -18,12 +20,18 @@ export function endsWithCurrencyMarker(text: string, currencyWords: readonly str
   );
 }
 
+// `{{ amount }}k £`: a magnitude suffix stands between the amount and its currency.
 export function startsWithCurrencyMarker(text: string, currencyWords: readonly string[]): boolean {
-  const trimmed = text.trimStart();
+  const trimmed = text.replace(MAGNITUDE_SUFFIX, '').trimStart();
   if (CURRENCY_SYMBOL_AT_START.test(trimmed)) {
     return true;
   }
   return currencyWords.some((word) => trimmed.startsWith(word) && !isLetter(trimmed[word.length]));
+}
+
+export function isCurrencyMarker(text: string, currencyWords: readonly string[]): boolean {
+  const trimmed = text.trim();
+  return SYMBOL_WITH_PREFIX.test(trimmed) || currencyWords.includes(trimmed);
 }
 
 export function findExpressionsNextToCurrency(

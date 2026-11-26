@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { splitSelectorList } from '../config/element-selector';
 import type { TemplateSource } from './template-facts';
 
 // Directives are kept here too: a role may target an attribute directive such as `button[pButton]`.
@@ -63,16 +64,43 @@ function isDeprecated(node: ts.Node): boolean {
   return ts.getJSDocTags(node).some((tag) => tag.tagName.text === 'deprecated');
 }
 
+const CUSTOM_TAG = /^[a-z][\w]*-[\w-]*/i;
+
+// `tui-textfield:not([multi])` and `tui-textfield[multi]` both declare the element `tui-textfield`.
 export function elementNamesOf(selector: string): string[] {
-  return selector
-    .split(',')
-    .map((part) => part.trim())
-    .filter((part) => /^[a-z][\w-]*-[\w-]*$/i.test(part));
+  const names = splitSelectorList(selector).flatMap((part) => CUSTOM_TAG.exec(part)?.[0] ?? []);
+  return [...new Set(names)];
 }
 
 function inlineTemplate(file: string, sourceFile: ts.SourceFile, literal: ts.StringLiteralLike): TemplateSource {
   const position = sourceFile.getLineAndCharacterOfPosition(literal.getStart(sourceFile) + 1);
   return { file, text: literal.text, firstLine: position.line + 1 };
+}
+
+export interface InlineTemplateSpan {
+  readonly text: string;
+  readonly offset: number;
+  readonly line: number;
+  readonly column: number;
+}
+
+// The raw text between the quotes keeps offsets equal to the source, so lint messages map back to the `.ts` file.
+export function findInlineTemplates(file: string, text: string): InlineTemplateSpan[] {
+  if (!text.includes('@Component')) return [];
+  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+  const templates: InlineTemplateSpan[] = [];
+  const visit = (node: ts.Node): void => {
+    const component = ts.isClassDeclaration(node) ? decoratorCall(node, 'Component') : undefined;
+    const literal = component === undefined ? undefined : stringProperty(component, 'template');
+    if (literal !== undefined) {
+      const offset = literal.getStart(sourceFile) + 1;
+      const position = sourceFile.getLineAndCharacterOfPosition(offset);
+      templates.push({ text: text.slice(offset, literal.getEnd() - 1), offset, line: position.line + 1, column: position.character + 1 });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return templates;
 }
 
 export function collectDeclarations(file: string, text: string): FileDeclarations {

@@ -20,7 +20,7 @@ export function formatScanReport(report: ScanReport): string {
   const lines = [`Houserules scan: ${report.templateCount} templates`, `Roots: ${(report.roots ?? ['.']).join(', ')}`, ''];
   if ((report.missingDependencies?.length ?? 0) > 0) lines.push(`Missing dependencies: ${report.missingDependencies?.join(', ')}`, '');
   const ways = describeMoneyWays(report);
-  lines.push(ways.length === 0 ? 'Money: nothing found.' : `Money is shown in ${ways.length} ways:`);
+  lines.push(ways.length === 0 ? 'Money: nothing found.' : `Money is shown in ${ways.length} ${ways.length === 1 ? 'way' : 'ways'}:`);
   lines.push(...ways.map((way) => `  - ${way}`));
   for (const example of report.handFormattedMoney.examples) {
     lines.push(`      ${example.text}  ${where(example)}`);
@@ -32,6 +32,16 @@ export function formatScanReport(report: ScanReport): string {
   }
   lines.push('', 'Custom elements by usage:');
   lines.push(...report.components.slice(0, MAX_LISTED).flatMap(componentLines));
+  const directives = report.directives ?? [];
+  if (directives.length > 0) {
+    lines.push('', 'Attribute directives by usage:');
+    lines.push(
+      ...directives.slice(0, MAX_LISTED).flatMap((directive) => [
+        `  ${directive.name} ${directive.count} uses (${directive.source}${directive.declaredIn === undefined ? '' : `, ${directive.declaredIn}`}) on ${directive.elements.map((element) => `${element.name} ${element.count}`).join(', ')}`,
+        ...directive.examples.slice(0, 1).map((example) => `      ${example.text}  ${where(example)}`),
+      ]),
+    );
+  }
   lines.push('', 'Pipes by usage:');
   lines.push(...report.pipes.slice(0, MAX_LISTED).map((pipe) => `  ${pipe.name} ${pipe.count} uses (${pipe.source}${pipe.declaredIn === undefined ? '' : `, ${pipe.declaredIn}`})`));
   if (report.parseErrors.length > 0) {

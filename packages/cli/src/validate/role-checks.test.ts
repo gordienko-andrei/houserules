@@ -137,6 +137,7 @@ describe('validateProject', () => {
     project.remove();
     expect(checks.map((check) => `${check.status} ${check.message}`)).toEqual([
       expect.stringMatching(/^ok config .*houserules\.config\.ts is valid\.$/),
+      'ok 1 of 2 templates are inline and counted here. ESLint checks them with `configs.recommended({ inlineTemplates: true })` or with the inline template processor of angular-eslint.',
       'error money: <app-price> is not declared in the project or its libraries and is never used. Scanned roots: src.',
       'ok money: usage is a valid template.',
       'ok money: usage calls <app-price>.',

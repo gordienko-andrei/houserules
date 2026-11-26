@@ -62,4 +62,9 @@ describe('elementNamesOf', () => {
   it('keeps only element selectors', () => {
     expect(elementNamesOf('tui-amount, [tuiAmount], button[appButton], .x')).toEqual(['tui-amount']);
   });
+
+  it('reads the element of a selector with conditions', () => {
+    expect(elementNamesOf('tui-textfield:not([multi])')).toEqual(['tui-textfield']);
+    expect(elementNamesOf('tui-textfield[multi], tui-textfield:not([multi])')).toEqual(['tui-textfield']);
+  });
 });
