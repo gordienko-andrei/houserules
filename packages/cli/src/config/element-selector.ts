@@ -206,7 +206,8 @@ export function matchesElementSelector(selector: ElementSelector, element: Eleme
 }
 
 // True when the declared selector applies to every element the target selects. A declaration may also pin a native
-// attribute the target leaves open, as `input[type=checkbox][tuiCheckbox]` does for `input[tuiCheckbox]`.
+// attribute to a value the target leaves open, as `input[type=checkbox][tuiCheckbox]` does for `input[tuiCheckbox]`.
+// A bare `[loading]` is a different directive on top (`[tuiButton][loading]`), not the same declaration.
 export function selectorCovers(
   declared: ElementSelector,
   target: ElementSelector,
@@ -221,7 +222,8 @@ export function selectorCovers(
       matchesDirective ||= !isNativeAttribute(condition.name);
       continue;
     }
-    if (candidates.length > 0 || !isNativeAttribute(condition.name)) return false;
+    const isPinnedNativeValue = condition.value !== undefined && isNativeAttribute(condition.name);
+    if (candidates.length > 0 || !isPinnedNativeValue) return false;
   }
   return matchesDirective || declared.required.length === 0;
 }

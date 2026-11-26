@@ -33,6 +33,19 @@ export function checkReplacementScan(roleName: string, summary: ReplacementSumma
   return { status: 'ok', message: `${roleName}: replaces \`${summary.selector}\`: ${reported}${skipped}.` };
 }
 
+// Agents rarely find `:not(.class)` and `:not(th > *)` in the docs, so the groups that may be native on purpose are named here.
+export function checkKeepNativeHints(roleName: string, summary: ReplacementSummary): Check[] {
+  if (summary.keepNativeHints.length === 0) return [];
+  const groups = summary.keepNativeHints.map((hint) => `${hint.count} ${hint.reason}`).join(', ');
+  const selectors = summary.keepNativeHints.map((hint) => `\`${hint.selector}\``).join(', ');
+  return [
+    {
+      status: 'warning',
+      message: `${roleName}: replaces \`${summary.selector}\`: of the reported elements ${groups}. If they are native on purpose, add ${selectors} to \`replaces\`; otherwise replace them.`,
+    },
+  ];
+}
+
 export function checkReplacementExample(prepared: PreparedLint, roleName: string, selectorSource: string): Check {
   const selector = parseElementSelector(selectorSource);
   if ('unavailable' in prepared || selector === undefined) {

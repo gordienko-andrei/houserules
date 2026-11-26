@@ -21,7 +21,8 @@ for an inline template. A call `x.value()` counts only when `x` is a member of t
 `HttpResourceRef<…>` (an input that receives a resource). `form.value()` of Signal Forms, `slider.value()` of a
 signal wrapper and `store.items.value()` of a service are not resources the rule can confirm, so it stays silent.
 
-When no component file is found, every `x.value()` on a property counts, as in the first versions of the rule.
+When no component file is found, the rule cannot confirm a resource and stays silent. Check a template in
+isolation together with its component, or the rule reports nothing.
 
 For a resource `x` the same template must contain:
 

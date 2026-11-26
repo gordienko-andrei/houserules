@@ -22,7 +22,7 @@ export function formatScanReport(report: ScanReport): string {
   const ways = describeMoneyWays(report);
   lines.push(ways.length === 0 ? 'Money: nothing found.' : `Money is shown in ${ways.length} ${ways.length === 1 ? 'way' : 'ways'}:`);
   lines.push(...ways.map((way) => `  - ${way}`));
-  for (const example of report.handFormattedMoney.examples) {
+  for (const example of [...report.handFormattedMoney.examples, ...(report.currencyNamedValues?.examples ?? [])]) {
     lines.push(`      ${example.text}  ${where(example)}`);
   }
   const candidates = findMoneyCandidates(report);

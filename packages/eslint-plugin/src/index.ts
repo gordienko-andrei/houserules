@@ -1,7 +1,7 @@
 import type { ESLint } from 'eslint';
 import { version } from '../package.json';
 import { createRecommended } from './configs/recommended';
-import { INLINE_TEMPLATES_PROCESSOR, inlineTemplatesProcessor } from './processors/inline-templates';
+import { createInlineTemplatesProcessor, INLINE_TEMPLATES_ONLY_PROCESSOR, INLINE_TEMPLATES_PROCESSOR } from './processors/inline-templates';
 import { RULE_NAME as NO_GLUED_FIELDS, noGluedFields } from './rules/no-glued-fields/rule';
 import { RULE_NAME as NO_PX_FONT_SIZE, noPxFontSize } from './rules/no-px-font-size/rule';
 import { RULE_NAME as PREFER_ROLE_COMPONENT, preferRoleComponent } from './rules/prefer-role-component/rule';
@@ -27,7 +27,10 @@ export const plugin = {
   },
   // typescript-eslint rule types are stricter than ESLint core ones, so eslint.config.ts would reject them without this cast.
   rules: rules as unknown as NonNullable<ESLint.Plugin['rules']>,
-  processors: { [INLINE_TEMPLATES_PROCESSOR]: inlineTemplatesProcessor } as NonNullable<ESLint.Plugin['processors']>,
+  processors: {
+    [INLINE_TEMPLATES_PROCESSOR]: createInlineTemplatesProcessor(true),
+    [INLINE_TEMPLATES_ONLY_PROCESSOR]: createInlineTemplatesProcessor(false),
+  } as NonNullable<ESLint.Plugin['processors']>,
 } satisfies ESLint.Plugin;
 
 // ESLint.Plugin allows only config objects in `configs`, so the factory lives on a separate default export.

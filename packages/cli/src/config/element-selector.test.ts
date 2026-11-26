@@ -97,6 +97,11 @@ describe('selectorCovers', () => {
     expect(selectorCovers(selector('input[type=checkbox]'), selector('input[tuiCheckbox]'), isNative)).toBe(false);
     expect(selectorCovers(selector('input[type=radio][tuiCheckbox]'), selector('input[type=checkbox][tuiCheckbox]'), isNative)).toBe(false);
   });
+
+  it('does not take a directive with an extra bare native attribute for the same declaration', () => {
+    const isNative = (name: string) => name === 'loading';
+    expect(selectorCovers(selector('[tuiButton][loading]'), selector('button[tuiButton]'), isNative)).toBe(false);
+  });
 });
 
 describe('isCustomElementSelector', () => {

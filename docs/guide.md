@@ -51,7 +51,7 @@ each package folder).
 
 ```sh
 # in your project
-npm i -D ../houserules-packs/andrewgordienko-houserules-0.2.0.tgz ../houserules-packs/eslint-plugin-houserules-0.2.0.tgz
+npm i -D ../houserules-packs/andrewgordienko-houserules-0.2.1.tgz ../houserules-packs/eslint-plugin-houserules-0.2.1.tgz
 ```
 
 Use `pnpm pack`, not `npm pack`: pnpm replaces the `workspace:` version of `houserules` in the plugin's
@@ -126,9 +126,9 @@ npx houserules scan
 Houserules scan: 2 templates
 
 Money is shown in 3 ways:
-  - <app-money> component: 1 uses
-  - currency pipe: 1 uses
-  - by hand next to a currency sign or code: 1 places
+  - <app-money> component: 1 use
+  - currency pipe: 1 use
+  - by hand next to a currency sign or code: 1 place
       <p>{{ order.total }} руб.</p>  src/app/order.html:2
 
 Money candidates:
@@ -168,7 +168,8 @@ export default defineConfig({
   [`prefer-role-component`](../packages/eslint-plugin/docs/rules/prefer-role-component.md) rule then reports such
   elements everywhere except the role `files`. Elements that already carry a directive (`<button matChipRemove>`) are
   skipped, so `replaces: 'button'` is usually enough. Native elements kept on purpose are excluded by class or by
-  context: `button:not(.filter-pill):not(th > *)`.
+  context: `button:not(.filter-pill):not(th > *)`. `validate` names repeated groups among the reported elements
+  (“9 inside <th>, 12 with class filter-pill”) with the `:not(...)` that would keep them.
 - `nonComponentAttributes`: inputs and helper directives that leave a native element native, for example
   `['iconStart', 'appTooltip']`. Without them `<button appTooltip>` counts as a directive element and is skipped.
   `validate` names the skipped attributes that no directive of the project or its libraries selects on.
@@ -280,11 +281,12 @@ no blocks, so the rest of your ESLint config keeps working. Options:
 ...houserules.configs.recommended({ cwd: import.meta.dirname, inlineTemplates: true }),
 ```
 
-The processor passes the `.ts` text on unchanged, so your TypeScript rules keep working, and maps every message
-back to its line in the `.ts` file. ESLint must already know how to parse `.ts` files, for example through
-typescript-eslint. If you use the inline template processor of angular-eslint (`processInlineTemplates`), leave
-the option off: the blocks it extracts are `.html` files and Houserules already checks them. `validate` tells
-how many inline templates the project has.
+Every message points back to its line in the `.ts` file. When `typescript-eslint` or `@typescript-eslint/parser`
+is installed, the processor also passes the `.ts` text on unchanged, so your TypeScript rules keep working; then
+ESLint must have a config that parses `.ts`. Without a TypeScript parser in the project only the templates are
+checked, and ESLint does not try to read TypeScript. If you use the inline template processor of angular-eslint
+(`processInlineTemplates`), leave the option off: the blocks it extracts are `.html` files and Houserules already
+checks them. `validate` tells how many inline templates the project has.
 
 ### CommonJS config
 

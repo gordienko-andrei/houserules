@@ -1,7 +1,7 @@
 import { parseForESLint } from '@angular-eslint/template-parser';
 import { elementFactsOf, matchesElementSelector, type ElementSelector } from '../config/element-selector';
 import { directiveAttributesOf } from '../config/html-attributes';
-import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency } from '../text/currency-text';
+import { findAmountsNextToCurrencyCode, findExpressionsNextToCurrency, isCurrencyNamed } from '../text/currency-text';
 import { lineTextAt, walkTemplate, type WalkedNode } from './template-walk';
 
 export interface TemplateSource {
@@ -31,6 +31,8 @@ export interface ReplacedElement {
   readonly selector: string;
   readonly directives: readonly string[];
   readonly example: UsageExample;
+  readonly parent?: string;
+  readonly classes: readonly string[];
 }
 
 export interface TemplateTargets {
@@ -52,6 +54,7 @@ export interface TemplateFacts {
   readonly replacedElements: readonly ReplacedElement[];
   readonly pipes: readonly PipeUsage[];
   readonly handFormattedMoney: readonly UsageExample[];
+  readonly currencyNamedValues: readonly UsageExample[];
   readonly parseError?: string;
 }
 
@@ -100,12 +103,16 @@ function exampleAt(source: TemplateSource, offsets: Offsets, text?: string): Usa
   return { file: source.file, line: lineNumberAt(source, offsets.start), text: shown };
 }
 
+function startTagExample(source: TemplateSource, offsets: Offsets): UsageExample {
+  return exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end));
+}
+
 function usageAs(selector: string, source: TemplateSource, node: WalkedNode, offsets: Offsets): ElementUsage {
   const attributeNames = [...namesOf(node, 'attributes'), ...namesOf(node, 'inputs'), ...namesOf(node, 'outputs')];
   return {
     selector,
     attributeNames: [...new Set(attributeNames)].sort(),
-    example: exampleAt(source, offsets, source.text.slice(offsets.start, offsets.end)),
+    example: startTagExample(source, offsets),
   };
 }
 
@@ -134,7 +141,7 @@ function attributeUsages(source: TemplateSource, node: WalkedNode): AttributeUsa
   const offsets = spanOf(node, 'startSourceSpan');
   if (offsets === undefined) return [];
   const element = String(node['name']);
-  return directiveAttributesOf(elementFactsOf(node)).map((name) => ({ name, element, example: exampleAt(source, offsets) }));
+  return directiveAttributesOf(elementFactsOf(node)).map((name) => ({ name, element, example: startTagExample(source, offsets) }));
 }
 
 function replacedElements(
@@ -147,12 +154,16 @@ function replacedElements(
   const selectors = targets.replaced ?? [];
   if (selectors.length === 0 || offsets === undefined) return [];
   const facts = elementFactsOf(node, ancestors);
+  const classes = (facts.attributes.get('class') ?? '').split(/\s+/).filter((name) => name !== '');
+  const parent = ancestors[0] === undefined ? {} : { parent: String(ancestors[0]['name']) };
   return selectors
     .filter((selector) => matchesElementSelector(selector, facts))
     .map((selector) => ({
       selector: selector.source,
       directives: directiveAttributesOf(facts, selector, targets.nonComponentAttributes),
-      example: exampleAt(source, offsets),
+      example: startTagExample(source, offsets),
+      classes,
+      ...parent,
     }));
 }
 
@@ -172,6 +183,10 @@ function handFormattedMoneyAt(source: TemplateSource, node: WalkedNode, currency
   return spans[Math.min(...indexes)] ?? spanOf(node, 'sourceSpan');
 }
 
+function currencyNamedAt(source: TemplateSource, node: WalkedNode, currencyWords: readonly string[]): Offsets | undefined {
+  return expressionSpans(node).find((span) => span !== undefined && isCurrencyNamed(source.text.slice(span.start, span.end), currencyWords));
+}
+
 export function collectTemplateFacts(source: TemplateSource, currencyWords: readonly string[], targets: TemplateTargets = {}): TemplateFacts {
   const elements: ElementUsage[] = [];
   const attributes: AttributeUsage[] = [];
@@ -179,12 +194,13 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
   const replaced: ReplacedElement[] = [];
   const pipes: PipeUsage[] = [];
   const handFormattedMoney: UsageExample[] = [];
+  const currencyNamedValues: UsageExample[] = [];
   let templateNodes: unknown;
   try {
     templateNodes = parseForESLint(source.text, { filePath: source.file }).ast.templateNodes;
   } catch (error) {
     const parseError = error instanceof Error ? error.message : String(error);
-    return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney, parseError };
+    return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney, currencyNamedValues, parseError };
   }
   walkTemplate(templateNodes, (node, ancestors) => {
     const offsets = spanOf(node, 'sourceSpan');
@@ -200,10 +216,13 @@ export function collectTemplateFacts(source: TemplateSource, currencyWords: read
       pipes.push({ name: String(node['name']), example: exampleAt(source, offsets) });
     } else if (node.type === 'Interpolation') {
       const moneyOffsets = handFormattedMoneyAt(source, node, currencyWords);
+      const namedOffsets = moneyOffsets === undefined ? currencyNamedAt(source, node, currencyWords) : undefined;
       if (moneyOffsets !== undefined) {
         handFormattedMoney.push(exampleAt(source, moneyOffsets));
+      } else if (namedOffsets !== undefined) {
+        currencyNamedValues.push(exampleAt(source, namedOffsets));
       }
     }
   });
-  return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney };
+  return { elements, attributes, targetElements, replacedElements: replaced, pipes, handFormattedMoney, currencyNamedValues };
 }

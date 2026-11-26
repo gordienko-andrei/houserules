@@ -3,6 +3,31 @@
 `@andrewgordienko/houserules` and `eslint-plugin-houserules` are released together with the same version.
 Install both at that version.
 
+## 0.2.1
+
+### Changed
+
+- `require-async-states` stays silent when it cannot find the component of the template. 0.2.0 then counted every
+  `x.value()` on a property, so `form.value()` and `slider.value()` were reported in a template checked without
+  its `.ts` file.
+
+### Fixes
+
+- `inlineTemplates: true` no longer breaks a project without a TypeScript parser. The `.ts` text goes on to ESLint
+  only when `typescript-eslint` or `@typescript-eslint/parser` is installed; otherwise only the inline templates
+  are checked, instead of a parsing error in every `.ts` file.
+- `validate` no longer reports a directive with an extra bare attribute as a second declaration of the role
+  (`[tuiButton][loading]` for `button[tuiButton]`). A declaration may still pin a native attribute to a value, as
+  `input[type="checkbox"][tuiCheckbox]` does.
+- `scan` shows the whole start tag in examples of attribute directives, not only its first line.
+
+### New
+
+- `validate` names repeated groups among the native elements `replaces` reports, such as “9 inside <th>” or “12
+  with class jp-pill”, with the `:not(th > *)` or `:not(.jp-pill)` that would keep them native.
+- `scan` lists values named with a currency code (`salaryFloorGbp`, `price_usd`) that the template shows as a plain
+  value, as one more way money is shown. It is a hint for the setup, not a lint error.
+
 ## 0.2.0
 
 ### Breaking

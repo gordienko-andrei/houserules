@@ -52,7 +52,7 @@ blocks, so the rest of the ESLint config keeps working. Options:
 | `cwd` | `process.cwd()` | Where to look for `houserules.config.ts`, for example `import.meta.dirname`. |
 | `config` | none | The config object itself, instead of reading the file. |
 | `files` | `['**/*.html']` | Files the rules apply to. |
-| `inlineTemplates` | `false` | Also check `template:` strings of components through the `houserules/inline-templates` processor. Leave it off if angular-eslint already extracts inline templates. |
+| `inlineTemplates` | `false` | Also check `template:` strings of components through the `houserules/inline-templates` processor. The `.ts` text is passed on to your TypeScript rules only when a TypeScript parser is installed. Leave it off if angular-eslint already extracts inline templates. |
 | `inlineTemplateFiles` | `['**/*.ts']` | Files the processor reads. |
 
 `eslint --cache` sees changes of `houserules.config.ts`, because they change the computed config. The ESLint

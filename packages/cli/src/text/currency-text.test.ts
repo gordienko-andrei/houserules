@@ -6,6 +6,7 @@ import {
   isAmountExpression,
   isCurrencyCodeExpression,
   isCurrencyMarker,
+  isCurrencyNamed,
   startsWithCurrencyMarker,
 } from './currency-text';
 
@@ -47,6 +48,21 @@ describe('startsWithCurrencyMarker', () => {
   it('ignores plain text', () => {
     expect(startsWithCurrencyMarker(' items', ['USD'])).toBe(false);
     expect(startsWithCurrencyMarker(' %', [])).toBe(false);
+  });
+});
+
+describe('isCurrencyNamed', () => {
+  it('finds a name that ends with a currency code', () => {
+    expect(isCurrencyNamed("d.salaryFloorGbp ? '£' + (d.salaryFloorGbp | number) : 'Not set'")).toBe(true);
+    expect(isCurrencyNamed('order.price_usd')).toBe(true);
+    expect(isCurrencyNamed('totalРуб', ['руб'])).toBe(false);
+    expect(isCurrencyNamed('totalRub', ['руб'])).toBe(true);
+  });
+
+  it('ignores lone codes, words that are codes and values already shown by the currency pipe', () => {
+    expect(isCurrencyNamed('usd')).toBe(false);
+    expect(isCurrencyNamed('canTry')).toBe(false);
+    expect(isCurrencyNamed("priceUsd | currency: 'USD'")).toBe(false);
   });
 });
 

@@ -34,9 +34,9 @@ describe('scanProject', () => {
     ]);
     expect(describeMoneyWays(report)).toEqual([
       '<app-money> component: 2 uses',
-      'acmeAmount pipe: 1 uses',
-      'currency pipe: 1 uses',
-      'by hand next to a currency sign or code: 1 places',
+      'acmeAmount pipe: 1 use',
+      'currency pipe: 1 use',
+      'by hand next to a currency sign or code: 1 place',
     ]);
   });
 

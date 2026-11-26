@@ -60,6 +60,7 @@ export interface ScanReport {
   readonly directives?: readonly DirectiveFacts[];
   readonly pipes: readonly PipeFacts[];
   readonly handFormattedMoney: { readonly count: number; readonly examples: readonly UsageExample[] };
+  readonly currencyNamedValues?: { readonly count: number; readonly examples: readonly UsageExample[] };
   readonly replacements?: readonly ReplacementSummary[];
 }
 
@@ -275,6 +276,7 @@ export function scanProject(projectRoot: string, currencyWords: readonly string[
   const replacedElements = facts.flatMap(({ facts: templateFacts }) => templateFacts.replacedElements);
   const pipes = facts.flatMap(({ facts: templateFacts }) => templateFacts.pipes);
   const handFormattedMoney = facts.flatMap(({ facts: templateFacts }) => templateFacts.handFormattedMoney);
+  const currencyNamedValues = facts.flatMap(({ facts: templateFacts }) => templateFacts.currencyNamedValues);
   const libraries = collectLibraryDeclarations(root);
   const byUsage = (left: { count: number }, right: { count: number }): number => right.count - left.count;
   return {
@@ -296,6 +298,7 @@ export function scanProject(projectRoot: string, currencyWords: readonly string[
     ),
     pipes: pipeFacts(collected, pipes, libraries, options.pipes ?? []).sort(byUsage),
     handFormattedMoney: { count: handFormattedMoney.length, examples: handFormattedMoney.slice(0, MAX_EXAMPLES) },
+    currencyNamedValues: { count: currencyNamedValues.length, examples: currencyNamedValues.slice(0, MAX_EXAMPLES) },
     ...(replaceTargets.length === 0
       ? {}
       : {

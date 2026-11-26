@@ -2,7 +2,7 @@ import { loadConfig, type LoadedConfig } from '../config/load-config';
 import { resolveRules } from '../config/resolve-rules';
 import { RULE_NAMES, type HouserulesConfig } from '../config/schema';
 import { scanProject, type ScanReport } from '../scan/scan-project';
-import { checkReplacementExample, checkReplacementScan, checkRestriction } from './example-checks';
+import { checkKeepNativeHints, checkReplacementExample, checkReplacementScan, checkRestriction } from './example-checks';
 import { checkRoleTarget, checkUsage, type Check } from './role-checks';
 import { lintUsageCheck, prepareTemplateLint, type PreparedLint } from './self-lint';
 
@@ -53,7 +53,8 @@ function roleChecks(config: HouserulesConfig, scan: ScanReport, lint: PreparedLi
     const replaces = asList(role.replaces).flatMap((selector) => {
       const summary = scan.replacements?.find((item) => item.selector === selector);
       const example = lint === undefined ? [] : [checkReplacementExample(lint, name, selector)];
-      return [...(summary === undefined ? [] : [checkReplacementScan(name, summary)]), ...example];
+      const scanChecks = summary === undefined ? [] : [checkReplacementScan(name, summary), ...checkKeepNativeHints(name, summary)];
+      return [...scanChecks, ...example];
     });
     return [checkRoleTarget(name, role, scan), ...usageChecks, ...lintCheck, ...replaces];
   });
